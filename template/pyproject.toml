@@ -1,0 +1,29 @@
+[project]
+name = "{{APP_NAME}}"
+version = "0.1.0"
+readme = "README.md"
+description = "{{APP_DESCRIPTION}}"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.120.1",
+    "uvicorn[standard]>=0.38.0",
+    "pydantic[email]>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.20",
+    "sqlalchemy[asyncio]>=2.0.44",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.11",
+    "alembic>=1.17.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.407",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "python-dotenv>=1.2.1",
+    "ruff>=0.14.2",
+]

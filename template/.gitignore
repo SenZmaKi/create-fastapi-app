@@ -1,0 +1,64 @@
+# Igad backend
+crawler_output.json
+sample.md
+{{APP_NAME}}.log
+embedEtcd.yaml
+user.yaml
+volumes/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+wheels/
+*.egg-info
+.installed.cfg
+*.egg
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ruff
+.ruff_cache/
+
