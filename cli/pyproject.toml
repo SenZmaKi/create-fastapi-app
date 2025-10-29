@@ -7,4 +7,7 @@ requires-python = ">=3.11"
 dependencies = ["rich>=13.7.0", "questionary>=2.0.1"]
 
 [project.scripts]
-cli = "cli.main:main"
+create-fastapi-app = "app.main:main"
+
+[tool.uv]
+package = true
