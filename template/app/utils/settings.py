@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     fastapi_port: int = 8000
     fastapi_reload: bool = True
     fastapi_log_level: str = "info"
+    fastapi_reload_includes: list[str] = ["app/**/*.py", "*.env"]
 
     # Database
     database_url: str = (

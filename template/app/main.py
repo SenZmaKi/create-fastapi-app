@@ -101,6 +101,7 @@ def main() -> None:
         port=settings.fastapi_port,
         reload=settings.fastapi_reload,
         log_level=settings.fastapi_log_level,
+        reload_includes=settings.fastapi_reload_includes,
     )
 
 
