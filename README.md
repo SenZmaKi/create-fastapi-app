@@ -26,7 +26,7 @@ A CLI tool to quickly scaffold production-ready FastAPI applications with a well
 Run the CLI tool to create a new FastAPI project:
 
 ```bash
-uvx create-fastapi-app
+uvx git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
 ```
 
 The CLI will prompt you for:
