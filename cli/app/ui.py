@@ -1,3 +1,4 @@
+import shutil
 import sys
 from pathlib import Path
 from rich.console import Console
@@ -107,10 +108,26 @@ def get_user_input() -> AppConfig:
     )
 
 
+# TODO: Rollback database setup if error occurs after that step
+def rollback_setup_app(repo_dir: Path | None, app_dir: Path | None) -> None:
+    try:
+        if repo_dir and repo_dir.exists():
+            shutil.rmtree(repo_dir)
+    except Exception:
+        pass
+    try:
+        if app_dir and app_dir.exists():
+            shutil.rmtree(app_dir)
+    except Exception:
+        pass
+
+
 def setup_app(config: AppConfig) -> Path:
     console.print()
     console.print(f"[cyan]Creating {config.name}...[/cyan]")
     console.print()
+    repo_dir: Path | None = None
+    app_dir: Path | None = None
 
     try:
         with Progress(
@@ -165,6 +182,7 @@ def setup_app(config: AppConfig) -> Path:
         return app_dir
 
     except Exception as e:
+        rollback_setup_app(repo_dir, app_dir)
         console.print()
         console.print(
             Panel(
