@@ -1,5 +1,5 @@
 [project]
-name = "cli"
+name = "create-fastapi-app"
 version = "0.1.0"
 description = "CLI for create-fastapi-app"
 readme = "README.md"
