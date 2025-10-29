@@ -20,6 +20,16 @@ from app.logic import (
 VERSION = "v0.1.0"
 console = Console()
 
+
+class CompletableSpinnerColumn(SpinnerColumn):
+    """A spinner column that shows a checkmark when task is finished."""
+
+    def render(self, task):
+        if task.finished:
+            return Text("✓", style="green")
+        return super().render(task)
+
+
 custom_style = Style(
     [
         ("question", "bold"),
@@ -45,7 +55,7 @@ def print_header() -> None:
 def print_footer() -> None:
     footer = (
         Text("Made with ", style="dim")
-        + Text("❤️", style="red")
+        + Text("❤️ ", style="red")
         + Text(" by ", style="dim")
         + Text("SenZmaKi", style="dim link https://github.com/SenZmaKi/")
     )
@@ -104,7 +114,7 @@ def setup_app(config: AppConfig) -> Path:
 
     try:
         with Progress(
-            SpinnerColumn(),
+            CompletableSpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
             transient=False,
@@ -113,32 +123,43 @@ def setup_app(config: AppConfig) -> Path:
                 f"Cloning repository from {REPO_URL}...", total=None
             )
             repo_dir = clone_repo(config)
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Repository cloned")
+            progress.update(
+                current_task,
+                description=f"Cloned repository from {REPO_URL}",
+                completed=1,
+                total=1,
+            )
 
             current_task = progress.add_task("Applying configuration...", total=None)
             app_dir = configure_app_dir(Path.cwd(), config, repo_dir)
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Configuration applied")
+            progress.update(
+                current_task, description="Applied configuration", completed=1, total=1
+            )
 
             current_task = progress.add_task("Installing dependencies...", total=None)
             install_dependencies(app_dir)
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Dependencies installed")
+            progress.update(
+                current_task, description="Installed dependencies", completed=1, total=1
+            )
 
             if config.setup_database:
                 current_task = progress.add_task("Setting up database...", total=None)
                 setup_database(app_dir)
-                progress.update(current_task, completed=True)
-                console.print("[green]✓[/green] Database setup completed")
+                progress.update(
+                    current_task, description="Set up database", completed=1, total=1
+                )
 
             if config.initialize_git:
                 current_task = progress.add_task(
                     "Initializing git repository...", total=None
                 )
                 init_git_repo(app_dir)
-                progress.update(current_task, completed=True)
-                console.print("[green]✓[/green] Git repository initialized")
+                progress.update(
+                    current_task,
+                    description="Initialized git repository",
+                    completed=1,
+                    total=1,
+                )
 
         console.print()
         return app_dir
