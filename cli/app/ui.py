@@ -1,5 +1,4 @@
 import sys
-import subprocess
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
@@ -8,7 +7,15 @@ from rich.text import Text
 import questionary
 from questionary import Style
 
-from app.logic import AppConfig, clone_repo, configure_app, REPO_URL
+from app.logic import (
+    AppConfig,
+    clone_repo,
+    configure_app_dir,
+    REPO_URL,
+    init_git_repo,
+    install_dependencies,
+    setup_database,
+)
 
 VERSION = "v0.1.0"
 console = Console()
@@ -90,123 +97,51 @@ def get_user_input() -> AppConfig:
     )
 
 
-def create_app_with_progress(config: AppConfig) -> None:
+def setup_app(config: AppConfig) -> Path:
     console.print()
     console.print(f"[cyan]Creating {config.name}...[/cyan]")
     console.print()
 
     try:
-        repo_dir = Path.cwd() / config.name
-
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
             transient=False,
         ) as progress:
-            # Clone repository
             current_task = progress.add_task(
                 f"Cloning repository from {REPO_URL}...", total=None
             )
-            clone_repo(config)
+            repo_dir = clone_repo(config)
             progress.update(current_task, completed=True)
             console.print("[green]✓[/green] Repository cloned")
 
-            # Configure app
-            current_task = progress.add_task("Cleaning up git history...", total=None)
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Cleaned up git history")
-
-            current_task = progress.add_task("Removing CLI directory...", total=None)
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Removed CLI directory")
-
-            current_task = progress.add_task(
-                "Setting up template structure...", total=None
-            )
-            progress.update(current_task, completed=True)
-            console.print("[green]✓[/green] Template structure ready")
-
-            current_task = progress.add_task(
-                "Applying configuration to files...", total=None
-            )
-            configure_app(config, repo_dir)
+            current_task = progress.add_task("Applying configuration...", total=None)
+            app_dir = configure_app_dir(Path.cwd(), config, repo_dir)
             progress.update(current_task, completed=True)
             console.print("[green]✓[/green] Configuration applied")
 
-            # Install dependencies
-            current_task = progress.add_task(
-                "Installing dependencies with uv sync...", total=None
-            )
-            result = subprocess.run(
-                ["uv", "sync"],
-                cwd=repo_dir,
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode != 0:
-                raise Exception(f"Failed to install dependencies: {result.stderr}")
+            current_task = progress.add_task("Installing dependencies...", total=None)
+            install_dependencies(app_dir)
             progress.update(current_task, completed=True)
             console.print("[green]✓[/green] Dependencies installed")
 
-            # Setup database if requested
             if config.setup_database:
                 current_task = progress.add_task("Setting up database...", total=None)
-                result = subprocess.run(
-                    ["uv", "run", "python", "-m", "scripts.setup_db"],
-                    cwd=repo_dir,
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode != 0:
-                    console.print(
-                        f"[yellow]⚠[/yellow] Database setup failed: {result.stderr}"
-                    )
-                    console.print(
-                        "[yellow]You can set it up later by running: uv run python -m scripts.setup_db[/yellow]"
-                    )
-                else:
-                    progress.update(current_task, completed=True)
-                    console.print("[green]✓[/green] Database setup completed")
+                setup_database(app_dir)
+                progress.update(current_task, completed=True)
+                console.print("[green]✓[/green] Database setup completed")
 
-            # Initialize git repository as final step
             if config.initialize_git:
                 current_task = progress.add_task(
                     "Initializing git repository...", total=None
                 )
-                subprocess.run(
-                    ["git", "init"], cwd=repo_dir, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "add", "."], cwd=repo_dir, check=True, capture_output=True
-                )
-                subprocess.run(
-                    ["git", "commit", "-m", "Initial commit"],
-                    cwd=repo_dir,
-                    check=True,
-                    capture_output=True,
-                )
+                init_git_repo(app_dir)
                 progress.update(current_task, completed=True)
                 console.print("[green]✓[/green] Git repository initialized")
 
         console.print()
-
-        # Build the commands section
-        commands = f"[bold]To get started:[/bold]\n  [cyan]cd {config.name}[/cyan]\n"
-        if not config.setup_database:
-            commands += "  [cyan]uv run python -m scripts.setup_db[/cyan]\n"
-        commands += "  [cyan]uv run python -m app[/cyan]"
-
-        console.print(
-            Panel(
-                f"[green bold]Success![/green bold]\n\n"
-                f"Created [cyan]{config.name}[/cyan] at [dim]{repo_dir}[/dim]\n\n"
-                f"{commands}",
-                title="[green]✓[/green] Done",
-                border_style="green",
-            )
-        )
-        console.print()
+        return app_dir
 
     except Exception as e:
         console.print()
@@ -221,8 +156,27 @@ def create_app_with_progress(config: AppConfig) -> None:
         sys.exit(1)
 
 
+def print_to_get_started_commands(repo_dir: Path, config: AppConfig) -> None:
+    commands = f"[bold]To get started:[/bold]\n  [cyan]cd {config.name}[/cyan]\n"
+    if not config.setup_database:
+        commands += "  [cyan]uv run python -m scripts.setup_db[/cyan]\n"
+    commands += "  [cyan]uv run python -m app[/cyan]"
+
+    console.print(
+        Panel(
+            f"[green bold]Success![/green bold]\n\n"
+            f"Created [cyan]{config.name}[/cyan] at [dim]{repo_dir}[/dim]\n\n"
+            f"{commands}",
+            title="[green]✓[/green] Done",
+            border_style="green",
+        )
+    )
+    console.print()
+
+
 def run_ui() -> None:
     print_header()
     config = get_user_input()
-    create_app_with_progress(config)
+    app_dir = setup_app(config)
+    print_to_get_started_commands(app_dir, config)
     print_footer()

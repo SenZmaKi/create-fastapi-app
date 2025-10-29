@@ -1,11 +1,3 @@
-# Igad backend
-crawler_output.json
-sample.md
-{{APP_NAME}}.log
-embedEtcd.yaml
-user.yaml
-volumes/
-
 # Python-generated files
 __pycache__/
 *.py[oc]

@@ -64,7 +64,7 @@ def parse_database_url(database_url: str) -> DBInfo:
         raise ConfigError("Database URL must include a port number.")
     if not parsed.path:
         raise ConfigError("Database URL must include a database name.")
-    database = parsed.path.lstrip("/") if parsed.path else "igad"
+    database = parsed.path.lstrip("/")
     if not database:
         raise ConfigError("Database URL must include a database name.")
     if not parsed.username:

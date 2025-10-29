@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for faster package management
+# Install uv for package management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files
@@ -21,6 +21,8 @@ RUN uv pip install --system --no-cache-dir -r pyproject.toml
 
 # Production stage
 FROM python:3.11-slim
+ARG FAST_API_PORT=8000
+ENV FAST_API_PORT=${FAST_API_PORT}
 
 # Set working directory
 WORKDIR /app
@@ -34,9 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Copy Python packages from builder
+# Copy Python packages and uv from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 
 # Copy application code
 COPY --chown=appuser:appuser . .
@@ -49,11 +51,11 @@ RUN mkdir -p logs data && \
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE ${FAST_API_PORT}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${FAST_API_PORT}/health || exit 1
 
 # Run the application
-CMD ["uv", "run"]
+CMD ["uv", "run", "python", "-m", "app"]
