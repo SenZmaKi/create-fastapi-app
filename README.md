@@ -317,6 +317,10 @@ Key environment variables (configure in `.env`):
 | `DATABASE_URL`      | PostgreSQL connection string                 | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}       |
 | `TEST_DATABASE_URL` | Test database connection string              | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}\_test |
 
+## TODO
+
+- Fix reload includes and excludes not working.
+
 ## License
 
 MIT
