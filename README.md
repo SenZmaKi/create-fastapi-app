@@ -1,7 +1,40 @@
+<!-- TOC --><a name="create-fastapi-app"></a>
 # Create-FastAPI-App
 
 A CLI tool to quickly scaffold production-ready FastAPI applications with a well-structured project template.
+<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
+## Table of Contents
+
+- [Create-FastAPI-App](#create-fastapi-app)
+   * [Features](#features)
+   * [Requirements](#requirements)
+   * [Quick Start](#quick-start)
+   * [Project Structure](#project-structure)
+      + [Root Directory](#root-directory)
+      + [alembic/](#alembic)
+      + [app/](#app)
+         - [app/main.py](#appmainpy)
+         - [app/database/](#appdatabase)
+         - [app/dtos/](#appdtos)
+         - [app/routers/](#approuters)
+         - [app/utils/](#apputils)
+      + [scripts/](#scripts)
+      + [test/](#test)
+   * [Development Workflow](#development-workflow)
+      + [Adding a new feature](#adding-a-new-feature)
+      + [Database migrations](#database-migrations)
+      + [Running tests](#running-tests)
+      + [Code quality](#code-quality)
+   * [Docker](#docker)
+   * [Environment Variables](#environment-variables)
+   * [TODO](#todo)
+   * [License](#license)
+   * [Contributing](#contributing)
+
+<!-- TOC end -->
+
+<!-- TOC --><a name="features"></a>
 ## Features
 
 - Interactive CLI for project creation
@@ -14,6 +47,7 @@ A CLI tool to quickly scaffold production-ready FastAPI applications with a well
 - Type checking with Pyright
 - Code formatting and linting with Ruff
 
+<!-- TOC --><a name="requirements"></a>
 ## Requirements
 
 - uv (Python package manager)
@@ -21,6 +55,7 @@ A CLI tool to quickly scaffold production-ready FastAPI applications with a well
 - PostgreSQL (for database integration)
 - Docker (optional, for containerization)
 
+<!-- TOC --><a name="quick-start"></a>
 ## Quick Start
 
 Run the CLI tool to create a new FastAPI project:
@@ -36,10 +71,12 @@ The CLI will prompt you for:
 - **Initialize git repository**: Whether to create a git repository with an initial commit
 - **Setup database**: Whether to set up create the database and run initial migrations
 
+<!-- TOC --><a name="project-structure"></a>
 ## Project Structure
 
 The generated template follows a clean architecture pattern with clear separation of concerns:
 
+<!-- TOC --><a name="root-directory"></a>
 ### Root Directory
 
 ```
@@ -53,6 +90,7 @@ your-project-name/
 └── README.md                # Project documentation
 ```
 
+<!-- TOC --><a name="alembic"></a>
 ### alembic/
 
 Database migration management using Alembic.
@@ -70,6 +108,7 @@ alembic/
 - Apply migrations: `uv run alembic upgrade head`
 - Rollback migrations: `uv run alembic downgrade -1`
 
+<!-- TOC --><a name="app"></a>
 ### app/
 
 Main application code.
@@ -84,6 +123,7 @@ app/
 └── utils/                   # Utility modules
 ```
 
+<!-- TOC --><a name="appmainpy"></a>
 #### app/main.py
 
 The core application file that:
@@ -100,6 +140,7 @@ The core application file that:
 - `include_routers()`: Register your API routers here
 - `add_middlewares()`: Add custom middlewares here
 
+<!-- TOC --><a name="appdatabase"></a>
 #### app/database/
 
 Database-related code.
@@ -119,6 +160,7 @@ database/
 - Import them in `models/__init__.py`
 - Use async sessions from `session.py` for database operations
 
+<!-- TOC --><a name="appdtos"></a>
 #### app/dtos/
 
 Data Transfer Objects using Pydantic.
@@ -134,6 +176,7 @@ dtos/
 - Use for API request validation and response serialization
 - Example: `UserCreate`, `UserResponse`, `TokenResponse`
 
+<!-- TOC --><a name="approuters"></a>
 #### app/routers/
 
 API route handlers.
@@ -163,6 +206,7 @@ async def list_users():
     return {"users": []}
 ```
 
+<!-- TOC --><a name="apputils"></a>
 #### app/utils/
 
 Utility modules and shared functionality.
@@ -191,6 +235,7 @@ utils/
 - Define custom exceptions here
 - Use for domain-specific errors
 
+<!-- TOC --><a name="scripts"></a>
 ### scripts/
 
 Utility scripts for development and deployment.
@@ -209,6 +254,7 @@ scripts/
 - `create_migration.py`: Run to create a new migration after changing models
 - Add custom management scripts here (e.g., seed data, cleanup tasks)
 
+<!-- TOC --><a name="test"></a>
 ### test/
 
 Test suite using pytest.
@@ -227,8 +273,10 @@ test/
 - Run tests: `pytest`
 - Run with coverage: `pytest --cov=app`
 
+<!-- TOC --><a name="development-workflow"></a>
 ## Development Workflow
 
+<!-- TOC --><a name="adding-a-new-feature"></a>
 ### Adding a new feature
 
 1. **Create database models** in `app/database/models/`
@@ -239,6 +287,7 @@ test/
 6. **Register router** in `app/main.py`
 7. **Write tests** in `test/`
 
+<!-- TOC --><a name="database-migrations"></a>
 ### Database migrations
 
 ```bash
@@ -255,6 +304,7 @@ uv run alembic downgrade -1
 uv run alembic history
 ```
 
+<!-- TOC --><a name="running-tests"></a>
 ### Running tests
 
 ```bash
@@ -271,6 +321,7 @@ uv run pytest test/test_api.py
 uv run pytest -v
 ```
 
+<!-- TOC --><a name="code-quality"></a>
 ### Code quality
 
 The project includes pre-commit hooks for:
@@ -286,6 +337,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
+<!-- TOC --><a name="docker"></a>
 ## Docker
 
 Build and run with Docker:
@@ -298,6 +350,7 @@ docker build -t your-app-name .
 docker run -p 8000:8000 your-app-name
 ```
 
+<!-- TOC --><a name="environment-variables"></a>
 ## Environment Variables
 
 Key environment variables (configure in `.env`):
@@ -317,14 +370,17 @@ Key environment variables (configure in `.env`):
 | `DATABASE_URL`      | PostgreSQL connection string                 | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}       |
 | `TEST_DATABASE_URL` | Test database connection string              | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}\_test |
 
+<!-- TOC --><a name="todo"></a>
 ## TODO
 
 - Fix reload includes and excludes not working.
 
+<!-- TOC --><a name="license"></a>
 ## License
 
 MIT
 
+<!-- TOC --><a name="contributing"></a>
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
