@@ -6,35 +6,20 @@ from contextlib import closing
 from typing import NoReturn
 
 import pytest
-from dotenv import load_dotenv
 from tenacity import retry, retry_if_result, stop_after_delay, wait_fixed
 
-from app.utils.error import ConfigError
 
-load_dotenv()
-
-
-def get_server_host() -> str:
-    host = os.getenv("FASTAPI_HOST")
-    if not host:
-        raise ValueError("FASTAPI_HOST environment variable is not set")
-    return host
+from app.utils.settings import settings
 
 
-def get_server_port() -> int:
-    port_str = os.getenv("FASTAPI_PORT")
-    if not port_str:
-        raise ConfigError("FASTAPI_PORT environment variable is not set")
-    try:
-        port = int(port_str)
-        return port
-    except ValueError:
-        raise ConfigError("FASTAPI_PORT environment variable must be an integer")
-
-
-SERVER_HOST = get_server_host()
-SERVER_PORT = get_server_port()
+SERVER_HOST = settings.fastapi_host
+SERVER_PORT = settings.fastapi_port
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
+
+
+@pytest.fixture(scope="session")
+def base_url() -> str:
+    return BASE_URL
 
 
 def is_port_in_use(port: int, host: str) -> bool:

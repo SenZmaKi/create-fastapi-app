@@ -7,14 +7,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from app.utils.settings import settings
 from app.utils.logger import logger
-from app.routers import health, root
+from app.routers.routes import root_router
 from app.database.session import close_db, init_db
-
-
-def include_routers(app: FastAPI) -> None:
-    app.include_router(root.router)
-    app.include_router(health.router)
-    # Include your routers here
 
 
 def add_middlewares(app: FastAPI) -> None:
@@ -84,7 +78,7 @@ async def generic_exception_handler(_: Request, exception: Exception) -> JSONRes
 
 def create_app() -> FastAPI:
     app = build_fastapi_app()
-    include_routers(app)
+    app.include_router(root_router)
     add_middlewares(app)
     app.add_exception_handler(Exception, generic_exception_handler)
 

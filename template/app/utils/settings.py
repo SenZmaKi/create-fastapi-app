@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "{{APP_NAME}}"
+    app_name: str = "{{APP-NAME}}"
     app_description: str = """
-{{APP_DESCRIPTION}}
+{{APP-DESCRIPTION}}
 """
     app_version: str = "0.1.0"
     fastapi_debug: bool = False
@@ -26,10 +26,10 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}"
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}"
     )
     test_database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}_test"
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}_test"
     )
 
     # CORS

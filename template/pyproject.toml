@@ -1,8 +1,8 @@
 [project]
-name = "{{APP_NAME}}"
+name = "{{APP-NAME}}"
 version = "0.1.0"
 readme = "README.md"
-description = "{{APP_DESCRIPTION}}"
+description = "{{APP-DESCRIPTION}}"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.121.0",

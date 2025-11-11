@@ -67,8 +67,8 @@ def apply_config(app_dir: Path, config: AppConfig) -> None:
     for file in app_dir.rglob("*"):
         if file.is_file():
             content = file.read_text()
-            content = content.replace("{{APP_NAME}}", config.name)
-            content = content.replace("{{APP_DESCRIPTION}}", config.description)
+            content = content.replace("{{APP-NAME}}", config.name)
+            content = content.replace("{{APP-DESCRIPTION}}", config.description)
             file.write_text(content)
 
 

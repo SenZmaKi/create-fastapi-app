@@ -1,39 +1,40 @@
 <!-- TOC --><a name="project-name"></a>
 
-# {{APP_NAME}}
+# {{APP-NAME}}
 
-{{APP_DESCRIPTION}}
+{{APP-DESCRIPTION}}
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-  - [Root Directory](#root-directory)
-  - [alembic/](#alembic)
-  - [app/](#app)
-    - [app/main.py](#appmainpy)
-    - [app/database/](#appdatabase)
-    - [app/models/](#appmodels)
-    - [app/dtos/](#appdtos)
-    - [app/routers/](#approuters)
-    - [app/services/](#appservices)
-    - [app/utils/](#apputils)
-  - [scripts/](#scripts)
-  - [test/](#test)
-- [Development Workflow](#development-workflow)
-  - [Adding a new feature](#adding-a-new-feature)
-  - [Database migrations](#database-migrations)
-  - [Running tests](#running-tests)
-  - [Code quality](#code-quality)
-- [Docker](#docker)
-- [Environment Variables](#environment-variables)
-- [License](#license)
-- [Contributing](#contributing)
+- [{{APP-NAME}}](#app-name)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Quick Start](#quick-start)
+  - [Project Structure](#project-structure)
+    - [Root Directory](#root-directory)
+    - [alembic/](#alembic)
+    - [app/](#app)
+      - [app/main.py](#appmainpy)
+      - [app/database/](#appdatabase)
+      - [app/models/](#appmodels)
+      - [app/dtos/](#appdtos)
+      - [app/routers/](#approuters)
+      - [app/services/](#appservices)
+      - [app/utils/](#apputils)
+    - [scripts/](#scripts)
+    - [test/](#test)
+  - [Development Workflow](#development-workflow)
+    - [Adding a new feature](#adding-a-new-feature)
+    - [Database migrations](#database-migrations)
+    - [Running tests](#running-tests)
+    - [Code quality](#code-quality)
+  - [Docker](#docker)
+  - [Environment Variables](#environment-variables)
+  - [License](#license)
+  - [Contributing](#contributing)
 
 <!-- TOC end -->
 
@@ -244,25 +245,33 @@ API route handlers.
 routers/
 ├── __init__.py
 ├── health.py                # Health check endpoint
-└── root.py                  # Root endpoint
+├── root.py                  # Root endpoint
+└── routes.py                # Centralized router registration
 ```
 
 **Usage:**
 
-- Create new routers for different API resources
-- Each router should focus on a specific domain (e.g., `users.py`, `auth.py`)
-- Register new routers in `app/main.py` in the `include_routers()` function
+- Create new routers for different API resources (e.g., `users.py`, `auth.py`)
+- Register new routers in `routes.py` for centralized management
 
-Example router structure:
+Example router registration (`routes.py`):
 
 ```python
+# app/routers/users.py
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/api/users", tags=["Users"])
 
 @router.get("/")
 async def list_users():
     return {"users": []}
+```
+
+```python
+# app/routers/routes.py
+from app.routers.users import router as users_router
+...
+root_router.include_router(users_router)
 ```
 
 <!-- TOC --><a name="appservices"></a>
@@ -445,10 +454,10 @@ Build and run with Docker:
 
 ```bash
 # Build image
-docker build -t {{APP_NAME}} .
+docker build -t {{APP-NAME}} .
 
 # Run container
-docker run -p 8000:8000 {{APP_NAME}}
+docker run -p 8000:8000 {{APP-NAME}}
 
 # Or use Docker Compose
 docker-compose up
@@ -462,8 +471,8 @@ Key environment variables (configure in `.env`):
 
 | Variable            | Description                                  | Default                                                                  |
 | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
-| `APP_NAME`          | Application name                             | {{APP_NAME}}                                                             |
-| `APP_DESCRIPTION`   | Application description                      | {{APP_DESCRIPTION}}                                                      |
+| `APP-NAME`          | Application name                             | {{APP-NAME}}                                                             |
+| `APP-DESCRIPTION`   | Application description                      | {{APP-DESCRIPTION}}                                                      |
 | `APP_VERSION`       | Application version                          | 0.1.0                                                                    |
 | `ENV`               | Environment (development/production/testing) | development                                                              |
 | `FASTAPI_DEBUG`     | Debug mode                                   | false                                                                    |
@@ -472,8 +481,8 @@ Key environment variables (configure in `.env`):
 | `FASTAPI_RELOAD`    | Auto-reload on code changes                  | true                                                                     |
 | `FASTAPI_LOG_LEVEL` | Logging level                                | info                                                                     |
 | `CORS_ORIGINS`      | Allowed CORS origins                         | []                                                                       |
-| `DATABASE_URL`      | PostgreSQL connection string                 | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}       |
-| `TEST_DATABASE_URL` | Test database connection string              | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP_NAME}}\_test |
+| `DATABASE_URL`      | PostgreSQL connection string                 | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}       |
+| `TEST_DATABASE_URL` | Test database connection string              | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}\_test |
 
 <!-- TOC --><a name="license"></a>
 

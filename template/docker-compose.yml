@@ -2,11 +2,11 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: {{APP_NAME}}-postgres
+    container_name: {{APP-NAME}}-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-{{APP_NAME}}}
+      POSTGRES_DB: ${POSTGRES_DB:-{{APP-NAME}}}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -19,7 +19,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - {{APP_NAME}}-network
+      - {{APP-NAME}}-network
 
   # FastAPI Application
   app:
@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
       args:
         - FAST_API_PORT=${FAST_API_PORT:-8000}
-    container_name: {{APP_NAME}}-fastapi
+    container_name: {{APP-NAME}}-fastapi
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
       - app_data:/app/data
     restart: unless-stopped
     networks:
-      - {{APP_NAME}}-network
+      - {{APP-NAME}}-network
 
 volumes:
   postgres_data:
@@ -52,5 +52,5 @@ volumes:
     driver: local
 
 networks:
-  {{APP_NAME}}-network:
+  {{APP-NAME}}-network:
     driver: bridge

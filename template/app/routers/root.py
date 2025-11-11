@@ -1,15 +1,9 @@
 from fastapi import APIRouter
-from app.utils.settings import settings
+from template.app.dtos.root import RootResponse
 
-router = APIRouter(tags=["root"])
+router = APIRouter(tags=["Root"])
 
 
 @router.get("/")
-async def root() -> dict[str, str]:
-    return {
-        "name": settings.app_name,
-        "description": settings.app_description,
-        "version": settings.app_version,
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
+async def root() -> RootResponse:
+    return RootResponse()

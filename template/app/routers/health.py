@@ -1,8 +1,10 @@
 from fastapi import APIRouter
 
-router = APIRouter(tags=["health"])
+from template.app.dtos.health import HealthResponse
+
+router = APIRouter(tags=["Health"])
 
 
 @router.get("/health")
-async def health_check() -> dict[str, str]:
-    return {"status": "healthy"}
+async def health_check() -> HealthResponse:
+    return HealthResponse()
