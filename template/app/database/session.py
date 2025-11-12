@@ -22,14 +22,14 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for getting an async database session.
     Auto-commits when no exception is raised and auto-rollbacks on exceptions
 
     ```python
         @app.get("/items")
-        async def read_items(db: AsyncSession = Depends(get_db)):
+        async def read_items(db: AsyncSession = Depends(get_db_session)):
             ...
     ```
     """

@@ -1,4 +1,4 @@
-<!-- TOC --><a name="project-name"></a>
+<!-- TOC --><a name="{{APP-NAME}}"></a>
 
 # {{APP-NAME}}
 
@@ -101,7 +101,7 @@ The project follows a clean architecture pattern with clear separation of concer
 ### Root Directory
 
 ```
-your-project-name/
+{{APP-NAME}}/
 ├── alembic.ini              # Alembic configuration for database migrations
 ├── conftest.py              # Pytest configuration and shared fixtures
 ├── docker-compose.yml       # Docker Compose configuration
@@ -200,7 +200,6 @@ models/
 **Usage:**
 
 - Define new models in this directory
-- Import them in `models/__init__.py`
 - All models should inherit from the `Base` class
 
 Example model:
