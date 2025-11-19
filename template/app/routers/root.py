@@ -1,9 +1,12 @@
-from fastapi import APIRouter
-from template.app.dtos.root import RootResponse
+from fastapi import APIRouter, Request
+from app.dtos.root import RootResponse
 
-router = APIRouter(tags=["Root"])
+
+router = APIRouter(prefix="", tags=["Root"])
 
 
 @router.get("/")
-async def root() -> RootResponse:
-    return RootResponse()
+async def root(
+    request: Request,
+) -> RootResponse:
+    return RootResponse.from_request(request=request)

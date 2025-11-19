@@ -1,6 +1,5 @@
 from fastapi import APIRouter
-
-from template.app.dtos.health import HealthResponse
+from app.dtos.health import HealthResponse
 
 router = APIRouter(tags=["Health"])
 
