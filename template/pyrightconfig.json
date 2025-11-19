@@ -1,3 +1,7 @@
 {
-    "typeCheckingMode": "standard"
+    "typeCheckingMode": "standard",
+    "exclude": [
+        ".venv/",
+        "alembic/versions"
+    ]
 }

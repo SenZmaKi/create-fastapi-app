@@ -68,7 +68,7 @@ jobs:
         run: uv sync --dev
 
       - name: Check formatting with ruff
-        run: uv run ruff format --check .
+        run: uv run ruff format --exclude "alembic/versions/*" --check .
 
   test:
     runs-on: ubuntu-latest

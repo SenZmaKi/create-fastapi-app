@@ -165,7 +165,6 @@ The core application file that:
 **Key functions:**
 
 - `create_app()`: Main application factory
-- `include_routers()`: Register your API routers here
 - `add_middlewares()`: Add custom middlewares here
 
 <!-- TOC --><a name="appdatabase"></a>
