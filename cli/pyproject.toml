@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "rich>=13.7.0",
     "questionary>=2.0.1",
-    "pre-commit>=4.4.0",
 ]
 
 [project.scripts]
@@ -15,3 +14,9 @@ create-fastapi-app = "app.main:main"
 
 [tool.uv]
 package = true
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.4.0",
+    "pyright>=1.1.407",
+]
