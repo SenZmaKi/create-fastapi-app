@@ -33,8 +33,6 @@
     - [Code quality](#code-quality)
   - [Docker](#docker)
   - [Environment Variables](#environment-variables)
-  - [License](#license)
-  - [Contributing](#contributing)
 
 <!-- TOC end -->
 
@@ -85,7 +83,7 @@ uv run python -m scripts.setup_db
 4. Run the application:
 
 ```bash
-uv run python -m app
+scripts/dev.sh
 ```
 
 The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
@@ -343,15 +341,21 @@ Utility scripts for development and deployment.
 ```
 scripts/
 ├── __init__.py
-├── create_migration.py      # Helper script to create Alembic migrations
+├── create_migration.sh      # Shell script to create Alembic migrations
+├── dev.sh                   # Development server script
+├── migrate.sh               # Database migration script
 ├── setup_db.py              # Database setup and initialization script
+├── test.sh                  # Test server script
 └── utils.py                 # Shared utility functions for scripts
 ```
 
 **Usage:**
 
 - `setup_db.py`: Run to set up the database (checks PostgreSQL, creates DB, runs migrations)
-- `create_migration.py`: Run to create a new migration after changing models
+- `create_migration.sh`: Shell script to create a new migration after changing models
+- `dev.sh`: Run development server with auto-reload
+- `migrate.sh`: Apply database migrations
+- `test.sh`: Run test server
 - Add custom management scripts here (e.g., seed data, cleanup tasks)
 
 <!-- TOC --><a name="test"></a>
@@ -383,8 +387,8 @@ test/
 ### Adding a new feature
 
 1. **Create database models** in `app/models/`
-2. **Create a migration**: `uv run python -m scripts.create_migration "add user table"`
-3. **Apply the migration**: `uv run alembic upgrade head`
+2. **Create a migration**: `bash scripts/create_migration.sh "add user table"`
+3. **Apply the migration**: `bash scripts/migrate.sh`
 4. **Create DTOs** in `app/dtos/` for request/response validation
 5. **Create service** in `app/services/` for business logic
 6. **Create router** in `app/routers/` with your endpoints
@@ -397,10 +401,10 @@ test/
 
 ```bash
 # Create a migration after changing models
-uv run python -m scripts.create_migration "description of changes"
+scripts/create_migration.sh "description of changes"
 
 # Apply migrations
-uv run alembic upgrade head
+scripts/migrate.sh
 
 # Rollback last migration
 uv run alembic downgrade -1
@@ -465,31 +469,4 @@ docker-compose up
 
 ## Environment Variables
 
-Key environment variables (configure in `.env`):
-
-| Variable            | Description                                  | Default                                                                  |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
-| `APP-NAME`          | Application name                             | {{APP-NAME}}                                                             |
-| `APP-DESCRIPTION`   | Application description                      | {{APP-DESCRIPTION}}                                                      |
-| `APP_VERSION`       | Application version                          | 0.1.0                                                                    |
-| `ENV`               | Environment (development/production/testing) | development                                                              |
-| `FASTAPI_DEBUG`     | Debug mode                                   | false                                                                    |
-| `FASTAPI_HOST`      | Server host                                  | 0.0.0.0                                                                  |
-| `FASTAPI_PORT`      | Server port                                  | 8000                                                                     |
-| `FASTAPI_RELOAD`    | Auto-reload on code changes                  | true                                                                     |
-| `FASTAPI_LOG_LEVEL` | Logging level                                | info                                                                     |
-| `CORS_ORIGINS`      | Allowed CORS origins                         | []                                                                       |
-| `DATABASE_URL`      | PostgreSQL connection string                 | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}       |
-| `TEST_DATABASE_URL` | Test database connection string              | postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}\_test |
-
-<!-- TOC --><a name="license"></a>
-
-## License
-
-MIT
-
-<!-- TOC --><a name="contributing"></a>
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+See [`.env.example`](./.env.example) for all required environment variables. Copy it to `.env` and adjust values as needed.

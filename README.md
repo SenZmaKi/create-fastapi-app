@@ -120,7 +120,6 @@ your-project-name/
 │   ├── utils/               # Utilities (settings, logging, errors)
 │   └── main.py              # FastAPI app factory
 ├── scripts/                 # Development scripts
-│   ├── create_migration.py  # Migration helper
 │   └── setup_db.py          # Database initialization
 ├── test/                    # Test suite
 │   └── test_api.py          # Example tests
