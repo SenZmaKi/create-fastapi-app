@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     fastapi_reload_includes: list[str] = ["app/**/*.py", "*.env"]
 
     # Database
+    db_engine_debug: bool = False
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/{{APP-NAME}}"
     )

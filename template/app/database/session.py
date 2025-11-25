@@ -7,7 +7,8 @@ from app.utils.settings import settings
 
 engine = create_async_engine(
     settings.get_database_url(),
-    echo=settings.fastapi_debug,
+    echo=settings.db_engine_debug,
+    echo_pool=settings.db_engine_debug,
     future=True,
     pool_pre_ping=True,
 )
