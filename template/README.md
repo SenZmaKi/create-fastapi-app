@@ -180,7 +180,7 @@ database/
 **Usage:**
 
 - Use async sessions from `session.py` for database operations
-- Import `get_session` dependency for route handlers
+- Import `get_db_session` dependency for route handlers
 
 <!-- TOC --><a name="appmodels"></a>
 
