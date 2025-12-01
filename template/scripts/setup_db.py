@@ -112,12 +112,13 @@ def create_database(db_info: DBInfo) -> bool:
         print_colored(f"✓ Database '{db_info.database}' created successfully!", "green")
         return True
     except subprocess.CalledProcessError as e:
-        if "already exists" in str(e.stderr):
+        e_stderr = str(e.stderr)
+        if "already exists" in e_stderr:
             print_colored(f"Database '{db_info.database}' already exists.", "blue")
             return True
         else:
             print_colored("✗ Failed to create database:", "red")
-            print(sys.stderr)
+            print(e_stderr)
             return False
 
 
