@@ -367,7 +367,7 @@ Test suite using pytest.
 ```
 test/
 ├── __init__.py
-└── test_api.py              # API endpoint tests
+└── test_health.py           # Health check endpoint tests
 ```
 
 **Usage:**
@@ -425,7 +425,7 @@ uv run pytest
 uv run pytest --cov=app
 
 # Run specific test file
-uv run pytest test/test_api.py
+uv run pytest test/test_health.py
 
 # Run with verbose output
 uv run pytest -v

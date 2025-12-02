@@ -4,8 +4,11 @@ import subprocess
 from collections.abc import Generator
 from contextlib import closing
 from typing import NoReturn
-
+from collections.abc import AsyncGenerator
+import aiohttp
 import pytest
+import pytest_asyncio
+from aiohttp import ClientSession, CookieJar
 from tenacity import retry, retry_if_result, stop_after_delay, wait_fixed
 
 
@@ -103,3 +106,14 @@ def verify_server() -> Generator[None | NoReturn, None, None]:
         process.kill()
         process.wait()
         print("✅ Server stopped forcefully")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def client(
+    base_url: str, verify_server: None
+) -> AsyncGenerator[ClientSession, None]:
+    jar = CookieJar()
+    async with ClientSession(
+        base_url=base_url, timeout=aiohttp.ClientTimeout(total=30.0), cookie_jar=jar
+    ) as ac:
+        yield ac

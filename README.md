@@ -122,7 +122,7 @@ your-project-name/
 ├── scripts/                 # Development scripts
 │   └── setup_db.py          # Database initialization
 ├── test/                    # Test suite
-│   └── test_api.py          # Example tests
+│   └── test_health.py          # Example tests
 ├── alembic.ini              # Alembic configuration
 ├── conftest.py              # Pytest fixtures
 ├── docker-compose.yml       # Docker Compose setup
