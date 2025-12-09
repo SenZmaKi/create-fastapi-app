@@ -93,7 +93,7 @@ The generated project comes with:
 
 - ⚡ **FastAPI Application** - Modern async web framework with automatic API documentation
 - 🗄️ **SQLAlchemy + Alembic** - Async ORM and database migration management
-- 🔧 **Helper Scripts** - Database setup and migration creation utilities
+- 🔧 **Helper Scripts** - Database setup, migration, and development server utilities
 - 🧪 **Testing Framework** - Pytest with async support and example tests
 - 📝 **Type Checking** - Pyright configuration for full type safety
 - 🎨 **Code Formatting** - Ruff for fast linting and formatting
@@ -119,10 +119,19 @@ your-project-name/
 │   ├── services/            # Business logic layer
 │   ├── utils/               # Utilities (settings, logging, errors)
 │   └── main.py              # FastAPI app factory
-├── scripts/                 # Development scripts
-│   └── setup_db.py          # Database initialization
+├── scripts/                 # Development and database management scripts
+│   ├── start_server.sh      # Start server
+│   ├── setup_db.sh          # Database initialization
+│   ├── reset_db.sh          # Drop and recreate database
+│   ├── migrate.sh           # Run database migrations
+│   ├── test.sh              # Run test suite
+│   ├── utils.sh             # Shared script utilities
+│   ├── db/                  # Database Python modules
+│   │   ├── setup.py         # Database creation logic
+│   │   └── drop.py          # Database drop logic
+│   └── utils/               # Script utilities
 ├── test/                    # Test suite
-│   └── test_health.py          # Example tests
+│   └── test_health.py       # Example tests
 ├── alembic.ini              # Alembic configuration
 ├── conftest.py              # Pytest fixtures
 ├── docker-compose.yml       # Docker Compose setup

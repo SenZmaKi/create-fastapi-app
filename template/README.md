@@ -77,13 +77,13 @@ cp .env.example .env
 3. Set up the database:
 
 ```bash
-uv run python -m scripts.setup_db
+bash scripts/setup_db.sh
 ```
 
 4. Run the application:
 
 ```bash
-scripts/dev.sh
+bash scripts/start_server.sh
 ```
 
 The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
@@ -125,7 +125,7 @@ alembic/
 
 **Usage:**
 
-- Create a new migration: `uv run python -m scripts.create_migration "description"`
+- Create a new migration: `uv run alembic revision --autogenerate -m "description"`
 - Apply migrations: `uv run alembic upgrade head`
 - Rollback migrations: `uv run alembic downgrade -1`
 
@@ -341,22 +341,33 @@ Utility scripts for development and deployment.
 ```
 scripts/
 ├── __init__.py
-├── create_migration.sh      # Shell script to create Alembic migrations
-├── dev.sh                   # Development server script
+├── start_server.sh          # Production server script
+├── setup_db.sh              # Database initialization script
+├── reset_db.sh              # Drop and recreate database script
 ├── migrate.sh               # Database migration script
-├── setup_db.py              # Database setup and initialization script
-├── test.sh                  # Test server script
-└── utils.py                 # Shared utility functions for scripts
+├── test.sh                  # Test runner script
+├── utils.sh                 # Shared shell script utilities
+├── db/                      # Database management modules
+│   ├── __init__.py
+│   ├── setup.py             # Database creation logic
+│   ├── drop.py              # Database drop logic
+│   └── utils/               # Database utilities
+└── utils/                   # Script utility modules
+    └── utils.py             # Python utility functions
 ```
 
 **Usage:**
 
-- `setup_db.py`: Run to set up the database (checks PostgreSQL, creates DB, runs migrations)
-- `create_migration.sh`: Shell script to create a new migration after changing models
-- `dev.sh`: Run development server with auto-reload
-- `migrate.sh`: Apply database migrations
-- `test.sh`: Run test server
-- Add custom management scripts here (e.g., seed data, cleanup tasks)
+- `start_server.sh`: Start server (supports --testing flag for test environment)
+- `setup_db.sh`: Initialize database (checks PostgreSQL, creates DB, runs migrations)
+- `reset_db.sh`: Drop and recreate database with fresh migrations (supports --testing flag)
+- `migrate.sh`: Apply pending database migrations (supports --testing flag)
+- `test.sh`: Run pytest test suite
+- `utils.sh`: Provides shared functions like `parse_args()` and `run_with_env()` for other scripts
+
+**Note:** Scripts support `--testing` flag to run against test database. The flag is automatically handled by `utils.sh` which sets `ENV=testing` for the command.
+
+**Important:** The scripts use shell script wrappers (`.sh` files) that call Python modules. This approach does not maintain backwards compatibility with older versions that used Python scripts directly. Always use the shell scripts (e.g., `bash scripts/setup_db.sh`) rather than calling Python modules directly.
 
 <!-- TOC --><a name="test"></a>
 
@@ -387,12 +398,12 @@ test/
 ### Adding a new feature
 
 1. **Create database models** in `app/models/`
-2. **Create a migration**: `bash scripts/create_migration.sh "add user table"`
+2. **Create a migration**: `uv run alembic revision --autogenerate -m "add user table"`
 3. **Apply the migration**: `bash scripts/migrate.sh`
 4. **Create DTOs** in `app/dtos/` for request/response validation
 5. **Create service** in `app/services/` for business logic
 6. **Create router** in `app/routers/` with your endpoints
-7. **Register router** in `app/main.py`
+7. **Register router** in `app/routers/routes.py`
 8. **Write tests** in `test/`
 
 <!-- TOC --><a name="database-migrations"></a>
@@ -401,10 +412,19 @@ test/
 
 ```bash
 # Create a migration after changing models
-scripts/create_migration.sh "description of changes"
+uv run alembic revision --autogenerate -m "description of changes"
 
-# Apply migrations
-scripts/migrate.sh
+# Apply migrations to development database
+bash scripts/migrate.sh
+
+# Apply migrations to test database
+bash scripts/migrate.sh --testing
+
+# Reset database (drop, recreate, and migrate)
+bash scripts/reset_db.sh
+
+# Reset test database
+bash scripts/reset_db.sh --testing
 
 # Rollback last migration
 uv run alembic downgrade -1

@@ -199,7 +199,7 @@ def print_to_get_started_commands(repo_dir: Path, config: AppConfig) -> None:
     commands = f"[bold]To get started:[/bold]\n  [cyan]cd {config.name}[/cyan]\n"
     if not config.setup_database:
         commands += "  [cyan]uv run python -m scripts.setup_db[/cyan]\n"
-    commands += "  [cyan]scripts/dev.sh[/cyan]"
+    commands += "  [cyan]scripts/start_server.sh[/cyan]"
 
     console.print(
         Panel(
