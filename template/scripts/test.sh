@@ -1,3 +1,4 @@
-set -e
+#!/usr/bin/env bash
+set -eo pipefail
 
-ENV=testing uv run uvicorn app.main:app --host 0.0.0.0 --reload --reload-include=.env $@
+uv run pytest $@

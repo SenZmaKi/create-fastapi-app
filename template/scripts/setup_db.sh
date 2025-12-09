@@ -10,6 +10,5 @@ source "$SCRIPT_DIR/utils.sh"
 # Parse arguments
 parse_args "$@"
 
-# Run migrations
-run_with_env uv run alembic upgrade head
-
+# Create the database
+run_with_env uv run python -m scripts.db.setup "${ARGS[@]}"
