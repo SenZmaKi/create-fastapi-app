@@ -4,13 +4,13 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
-INIT_MIGRATIONS=false
+RESET_MIGRATIONS=false
 
 # Extend parse_args to detect --init_migrations
 for arg in "$@"; do
   case "$arg" in
-    --init-migrations)
-      INIT_MIGRATIONS=true
+    --reset-migrations)
+      RESET_MIGRATIONS=true
       ;;
   esac
 done
@@ -21,8 +21,8 @@ parse_args "$@"
 run_with_env uv run python -m scripts.db.drop "${ARGS[@]}"
 
 
-# Run migrations or initialize migrations
-if [ "$INIT_MIGRATIONS" = true ]; then
+# Reset migrations
+if [ "$RESET_MIGRATIONS" = true ]; then
   echo "Reinitializing migrations"
   VERSIONS_DIR="$SCRIPT_DIR/../alembic/versions"
 
