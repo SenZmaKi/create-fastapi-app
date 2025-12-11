@@ -9,7 +9,7 @@ INIT_MIGRATIONS=false
 # Extend parse_args to detect --init_migrations
 for arg in "$@"; do
   case "$arg" in
-    --init_migrations)
+    --init-migrations)
       INIT_MIGRATIONS=true
       ;;
   esac
