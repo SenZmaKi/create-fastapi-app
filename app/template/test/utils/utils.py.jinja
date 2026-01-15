@@ -1,0 +1,80 @@
+import random
+import secrets
+import string
+import uuid
+from typing import NamedTuple
+{ %if enable_auth % }
+from httpx import AsyncClient, Response
+{ % else % }
+from httpx import Response
+{ % endif % }
+from pytest import fail
+from app.dtos.tools.utils.utils import TimeFrequencies
+{% if enable_auth%} 
+from app.utils.utils import utc_now
+{ endif }
+from datetime import datetime
+
+
+async def assert_status_code(response: Response, status_code: int) -> None:
+    if response.status_code != status_code:
+        body = response.text
+        raise fail(f"Upcoming status {status_code}, got {response.status_code}: {body}")
+
+
+{% if enable_auth %}
+class UserRegistrationResult(NamedTuple):
+    token: str
+    registration_response: Response
+    verification_response: Response | None
+    user_data: dict
+    user_id: str
+    is_verified: bool
+
+
+def build_user_data(
+    name: str | None = None,
+    email: str | None = None,
+    phone_number: str | None = None,
+    password: str | None = None,
+) -> dict:
+    user_uuid = uuid.uuid4().hex[:8]
+    return {
+        "name": name or f"Test User {user_uuid}",
+        "email": email or f"test{user_uuid}@gmail.com",
+        "phone_number": phone_number
+        or f"+254{''.join(random.choices(string.digits, k=10))}",
+        "password": password or secrets.token_urlsafe(8),
+    }
+
+
+async def register_user(
+    client: AsyncClient,
+    user_data: dict | None = None,
+    verify: bool = True,
+) -> UserRegistrationResult:
+    """Register a user for testing. By default, marks user as verified in DB."""
+    user_data = build_user_data(**user_data) if user_data else build_user_data()
+    registration_response = await client.post("auth/register", json=user_data)
+    await assert_status_code(registration_response, 201)
+    token = registration_response.headers.get("Authorization")
+    assert token is not None
+
+    response_json = registration_response.json()
+    user_id = response_json["id"]
+
+    is_verified = False
+    if verify:
+        verification_responsea = await client.post("auth/verify-email", json={"code": "Jr51Op"})
+        await assert_status_code(verification_responsea, 200)
+        is_verified = True
+
+    return UserRegistrationResult(
+        token=token,
+        registration_response=registration_response,
+        verification_response=verification_response,
+        user_data=user_data,
+        user_id=user_id,
+        is_verified=is_verified,
+    )
+{% endif %}
