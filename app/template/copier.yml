@@ -1,0 +1,79 @@
+# Copier configuration for create-fastapi-app
+
+# Basic configuration
+_templates_suffix: .jinja
+_skip_if_exists:
+  - .env
+
+# Jinja extensions
+_jinja_extensions:
+  - jinja2.ext.do
+
+# Questions
+app_name:
+  type: str
+  help: What is your app's name?
+  validator: "{% if not app_name %}App name cannot be empty{% endif %}"
+
+app_description:
+  type: str
+  help: App description
+  default: "A FastAPI application"
+
+setup_database:
+  type: bool
+  help: Setup database?
+  default: yes
+
+enable_docker:
+  type: bool
+  help: Enable Docker integration?
+  default: yes
+
+enable_auth:
+  type: bool
+  help: Enable authentication system?
+  default: yes
+
+enable_soft_delete:
+  type: bool
+  help: Enable soft delete for models?
+  default: yes
+
+enable_vps_deployment:
+  type: bool
+  help: Enable VPS deployment configuration?
+  default: yes
+
+# Computed values
+_exclude:
+  # Always exclude
+  - "copier.yml"
+  - "*.pyc"
+  - "__pycache__"
+  - ".git"
+  - ".pytest_cache"
+  - ".ruff_cache"
+  - "*.egg-info"
+  - ".venv"
+  - "logs"
+  
+  # Conditional excludes based on options
+  - "{% if not enable_docker %}Dockerfile.jinja{% endif %}"
+  - "{% if not enable_docker %}.dockerignore.jinja{% endif %}"
+  - "{% if not enable_docker %}docker-compose.yml.jinja{% endif %}"
+  - "{% if not enable_docker %}.github/workflows/docker.yml{% endif %}"
+  - "{% if not enable_auth %}app/services/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/routers/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/routers/utils/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/routers/utils/__init__.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/dtos/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/models/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/services/scheduler.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/services/email.py.jinja{% endif %}"
+  - "{% if not enable_vps_deployment %}pm2.config.js{% endif %}"
+  - "{% if not enable_auth %}app/models/auth.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/services/scheduler.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/services/email.py.jinja{% endif %}"
+  - "{% if not enable_vps_deployment %}pm2.config.js{% endif %}"
+

@@ -1,0 +1,89 @@
+from typing import Literal
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # Application
+    app_name: str = "{{ app_name }}"
+    app_description: str = """{{ app_description }}"""
+    app_version: str = "0.1.0"
+    fastapi_debug: bool = False
+    deployment_environment: Literal["development", "production", "testing"] = (
+        "development"
+    )
+    fastapi_host: str = "0.0.0.0"
+    fastapi_port: int = 8000
+    fastapi_reload: bool = True
+    fastapi_log_level: str = "info"
+    fastapi_reload_includes: list[str] = ["app/**/*.py", "*.env"]
+
+    # Docs Shield
+    docs_admin_username: str = "admin"
+    docs_admin_password: str = "password"
+
+    # Rate Limiting
+    rate_limit: str = "60/minute"
+
+    # Database
+    db_engine_debug: bool = False
+    postgres_user: str = "postgres"
+    postgres_password: str = "postgres"
+    postgres_db: str = "{{ app_name }}"
+    postgres_test_db: str = "{{ app_name }}-test"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+
+    # CORS
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+{% if enable_auth %}
+
+    # Sessions
+    session_lifetime_hours: int = 24
+
+    # Email
+    verification_code_lifetime_hours: int = 24
+    smtp_host: str = "host.example.com"
+    smtp_port: int = 465
+    smtp_use_tls: bool = deployment_environment == "production"
+    smtp_use_ssl: bool = True
+    smtp_host_user: str = "user@example.com"
+    smtp_host_password: str = "password"
+    smtp_from_email: str = "from@example.com"
+    smtp_from_name: str = "{{ app_name }}"
+
+    # Testing
+    test_send_email: bool = False
+    test_verify_code: bool = False
+{% endif %}
+
+    def get_database_url(self) -> str:
+        db = (
+            self.postgres_test_db
+            if self.deployment_environment == "testing"
+            else self.postgres_db
+        )
+        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{db}"
+
+    def get_database_info_safe(self) -> dict[str, str | int]:
+        """Get database connection info without credentials for logging."""
+        db = (
+            self.postgres_test_db
+            if self.deployment_environment == "testing"
+            else self.postgres_db
+        )
+        return {
+            "host": self.postgres_host,
+            "port": self.postgres_port,
+            "database": db,
+            "user": self.postgres_user,
+        }
+
+
+settings = Settings()

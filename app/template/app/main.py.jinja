@@ -1,0 +1,110 @@
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+import uvicorn
+from fastapi import FastAPI
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from app.middlewares.cors import add_cors_middleware
+from app.middlewares.logging import add_logging_middleware
+from app.middlewares.rate_limiter import add_rate_limiter_middleware
+from app.middlewares.docshield import add_docshield_middleware
+from app.middlewares.request_id import add_request_id_middleware
+from app.utils.settings import settings
+from app.utils.logger import logger
+from app.routers.routes import root_router
+from app.database.session import close_db, init_db
+{% if enable_auth %}
+from app.services.scheduler import start_scheduler, shutdown_scheduler
+{% endif %}
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+
+
+def add_middlewares(app: FastAPI) -> None:
+    add_logging_middleware(app)
+    add_request_id_middleware(app)
+    add_cors_middleware(app)
+    add_rate_limiter_middleware(app)
+    add_docshield_middleware(app)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    # Startup
+    logger.info(
+        "Starting server", extra={"environment": settings.deployment_environment}
+    )
+    logger.info(
+        "Initializing database",
+        extra={"database": settings.get_database_info_safe()},
+    )
+    await init_db()
+    logger.info("Database initialized")
+{% if enable_auth %}
+    logger.info("Starting scheduler")
+    start_scheduler()
+    logger.info("Scheduler started!")
+{% endif %}
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down")
+{% if enable_auth %}
+    logger.info("Stopping scheduler")
+    shutdown_scheduler()
+    logger.info("Scheduler stopped")
+{% endif %}
+    await close_db()
+    logger.info("Database connections closed")
+
+
+def build_fastapi_app() -> FastAPI:
+    return FastAPI(
+        title=settings.app_name,
+        debug=settings.fastapi_debug,
+        version=settings.app_version,
+        description=settings.app_description,
+        lifespan=lifespan,
+    )
+
+
+async def generic_exception_handler(_: Request, exception: Exception) -> JSONResponse:
+    logger.exception("Unhandled exception", exc_info=exception)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+        # Note: X-Request-ID header is automatically added by CorrelationIdMiddleware
+    )
+
+
+def add_exception_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(Exception, generic_exception_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
+
+
+def create_app() -> FastAPI:
+    app = build_fastapi_app()
+    app.include_router(root_router)
+    add_middlewares(app)
+    add_exception_handlers(app)
+
+    return app
+
+
+app = create_app()
+
+
+def main() -> None:
+    uvicorn.run(
+        "app.main:app",
+        host=settings.fastapi_host,
+        port=settings.fastapi_port,
+        reload=settings.fastapi_reload,
+        log_level=settings.fastapi_log_level,
+        reload_includes=settings.fastapi_reload_includes,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,459 @@
+# {{ app_name }}
+
+{{ app_description }}
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Development Workflow](#development-workflow)
+- [Middlewares](#middlewares)
+- [Docker](#docker)
+- [VPS Deployment](#vps-deployment)
+- [Environment Variables](#environment-variables)
+- [Testing](#testing)
+
+## Features
+
+- ⚡ **FastAPI** - Modern, fast web framework with automatic API documentation
+- 🗄️ **PostgreSQL** - Robust database with SQLAlchemy ORM and Alembic migrations
+- 🔒 **Type Safety** - Full type checking with Pyright and Pydantic
+- 📝 **Structured Logging** - Comprehensive logging with Structlog and request correlation IDs
+- 🛡️ **Security Middlewares**:
+  - Rate limiting (SlowAPI)
+  - Request ID tracking
+  - DocShield (API docs protection in production)
+  - CORS configuration
+- 🧪 **Testing** - Pytest with parallel execution and ASGI test client
+{% if enable_docker %}
+- 🐳 **Docker** - Multi-stage build with uv for optimal image size
+{% endif %}
+{% if enable_auth %}
+- 🔐 **Authentication** - Built-in user authentication with email verification
+{% endif %}
+{% if enable_soft_delete %}
+- 🗑️ **Soft Delete** - Safe data deletion with recovery options
+{% endif %}
+{% if enable_vps_deployment %}
+- 🚀 **VPS Deployment** - PM2 process management with CI/CD workflows
+{% endif %}
+
+## Requirements
+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- PostgreSQL 16+
+- Git
+{% if enable_docker %}
+- Docker & Docker Compose (optional)
+{% endif %}
+
+## Quick Start
+
+1. **Install dependencies:**
+
+```bash
+uv sync
+```
+
+2. **Set up environment variables:**
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+3. **Set up the database:**
+
+```bash
+bash scripts/setup_db.sh
+```
+
+4. **Run the application:**
+
+```bash
+bash scripts/start_server.sh
+```
+
+The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+
+## Project Structure
+
+```
+.
+├── app/
+│   ├── main.py              # Application entry point
+│   ├── database/            # Database configuration
+│   ├── dtos/                # Pydantic schemas
+│   ├── middlewares/         # Request/response middlewares
+│   ├── models/              # SQLAlchemy models
+│   ├── routers/             # API route handlers
+│   ├── services/            # Business logic
+│   └── utils/               # Utilities and settings
+├── alembic/                 # Database migrations
+├── scripts/                 # Utility scripts
+├── test/                    # Test files
+{% if enable_docker %}
+├── Dockerfile               # Docker image definition
+├── docker-compose.yml       # Docker services
+{% endif %}
+{% if enable_vps_deployment %}
+├── pm2.config.js            # PM2 process configuration
+{% endif %}
+├── .env.example             # Environment variables template
+├── pyproject.toml           # Dependencies and project config
+└── pytest.ini               # Test configuration
+```
+
+## Development Workflow
+
+### Adding a New Feature
+
+1. **Create database model** (if needed):
+
+```python
+# app/models/example.py
+from app.models.utils.utils import BaseMixin
+
+class Example(BaseMixin):
+    __tablename__ = "examples"
+    
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+```
+
+2. **Create migration:**
+
+```bash
+uv run alembic revision --autogenerate -m "add example table"
+uv run alembic upgrade head
+```
+
+3. **Create DTOs:**
+
+```python
+# app/dtos/example.py
+from pydantic import BaseModel
+
+class ExampleCreate(BaseModel):
+    name: str
+
+class ExampleResponse(BaseModel):
+    id: str
+    name: str
+```
+
+4. **Create router:**
+
+```python
+# app/routers/example.py
+from fastapi import APIRouter
+
+router = APIRouter(prefix="/examples", tags=["examples"])
+
+@router.post("/", response_model=ExampleResponse)
+async def create_example(data: ExampleCreate):
+    # Implementation
+    pass
+```
+
+5. **Register router:**
+
+```python
+# app/routers/routes.py
+from app.routers import example
+
+root_router.include_router(example.router)
+```
+
+### Database Migrations
+
+```bash
+# Create a new migration
+uv run alembic revision --autogenerate -m "description"
+
+# Apply migrations
+uv run alembic upgrade head
+
+# Rollback one migration
+uv run alembic downgrade -1
+
+# Reset database
+bash scripts/reset_db.sh
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+bash scripts/test.sh
+
+# Run specific test file
+bash scripts/test.sh test/test_health.py
+
+# Run with coverage
+bash scripts/test.sh --cov=app
+```
+
+### Code Quality
+
+```bash
+# Format code
+uv run ruff format .
+
+# Lint code
+uv run ruff check .
+
+# Type check
+uv run pyright
+
+# Run pre-commit hooks
+uv run pre-commit run --all-files
+```
+
+## Middlewares
+
+The application includes several built-in middlewares:
+
+### Logging Middleware
+Logs all HTTP requests and responses with structured logging:
+- Request method, path, headers, body
+- Response status, processing time, body
+- Automatic correlation ID for request tracking
+
+### Rate Limiting
+Protects your API from abuse with configurable rate limits:
+```python
+# Default: 60 requests per minute per IP
+RATE_LIMIT="60/minute"
+```
+
+### Request ID Tracking
+Automatically adds correlation IDs to all requests for distributed tracing.
+
+### DocShield
+Protects API documentation in production with basic authentication:
+```python
+DOCS_ADMIN_USERNAME="admin"
+DOCS_ADMIN_PASSWORD="secure-password"
+```
+
+### CORS
+Configurable CORS with environment-aware defaults:
+- Development: Allows all origins
+- Production: Restricted to specified origins
+
+{% if enable_docker %}
+## Docker
+
+### Development with Docker Compose
+
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f api
+
+# Stop services
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+```
+
+### Production Docker Build
+
+```bash
+# Build image
+docker build -t {{ app_name }}:latest .
+
+# Run container
+docker run -p 8000:8000 --env-file .env {{ app_name }}:latest
+```
+
+The Docker setup includes:
+- Multi-stage build for minimal image size
+- PostgreSQL database with health checks
+- Automatic migrations on startup
+- Volume mounts for logs and data persistence
+{% endif %}
+
+{% if enable_vps_deployment %}
+## VPS Deployment
+
+### Prerequisites
+
+1. **Server setup:**
+   - Ubuntu 20.04+ or similar Linux distribution
+   - Node.js and PM2 installed
+   - PostgreSQL database
+   - SSH access configured
+
+2. **GitHub Secrets (required):**
+   - `SSH_PRIVATE_KEY` - Private SSH key for server access
+   - `SSH_USER` - SSH username (e.g., `deploy`)
+   - `SERVER_HOST` - Server IP or domain
+   - `ENV_FILE` - Complete .env file contents for production
+
+### Deployment Workflow
+
+The CI/CD pipeline automatically deploys to production on pushes to `main`:
+
+1. Runs tests and quality checks
+2. Syncs code to server via rsync
+3. Installs dependencies with uv
+4. Runs database migrations
+5. Restarts application with PM2
+6. Performs health check
+
+### Manual Deployment
+
+```bash
+# SSH into server
+ssh user@your-server.com
+
+# Navigate to app directory
+cd /var/www/{{ app_name }}
+
+# Pull latest code
+git pull origin main
+
+# Install dependencies
+uv sync --no-dev
+
+# Run migrations
+bash scripts/migrate_db.sh
+
+# Restart with PM2
+pm2 restart {{ app_name }}
+```
+
+### PM2 Management
+
+```bash
+# View status
+pm2 status
+
+# View logs
+pm2 logs {{ app_name }}
+
+# Restart
+pm2 restart {{ app_name }}
+
+# Stop
+pm2 stop {{ app_name }}
+```
+{% endif %}
+
+## Environment Variables
+
+### Core Settings
+
+```bash
+# Application
+APP_NAME="{{ app_name }}"
+APP_DESCRIPTION="{{ app_description }}"
+DEPLOYMENT_ENVIRONMENT="development"  # development, production, testing
+
+# FastAPI
+FASTAPI_HOST="0.0.0.0"
+FASTAPI_PORT=8000
+FASTAPI_DEBUG=false
+FASTAPI_RELOAD=true
+
+# Database
+POSTGRES_USER="postgres"
+POSTGRES_PASSWORD="postgres"
+POSTGRES_DB="{{ app_name }}"
+POSTGRES_HOST="localhost"
+POSTGRES_PORT=5432
+
+# Security
+DOCS_ADMIN_USERNAME="admin"
+DOCS_ADMIN_PASSWORD="password"
+RATE_LIMIT="60/minute"
+
+# CORS
+CORS_ORIGINS=["http://localhost:3000"]
+```
+{% if enable_auth %}
+
+### Authentication Settings
+
+```bash
+# Email Configuration
+SMTP_HOST="smtp.example.com"
+SMTP_PORT=465
+SMTP_USE_SSL=true
+SMTP_HOST_USER="user@example.com"
+SMTP_HOST_PASSWORD="password"
+SMTP_FROM_EMAIL="noreply@example.com"
+SMTP_FROM_NAME="{{ app_name }}"
+
+# Session & Verification
+SESSION_LIFETIME_HOURS=24
+VERIFICATION_CODE_LIFETIME_HOURS=24
+
+# Testing
+TEST_SEND_EMAIL=false
+TEST_VERIFY_CODE=false
+```
+{% endif %}
+
+## Testing
+
+The project uses pytest with the following features:
+
+- **Parallel execution** - Tests run in parallel using pytest-xdist
+- **ASGI test client** - Direct testing without running a server
+- **Automatic retry** - Flaky tests are retried once
+- **Database isolation** - Each test uses a fresh test database
+
+### Test Structure
+
+```python
+# test/test_example.py
+import pytest
+from httpx import AsyncClient
+
+async def test_example_endpoint(client: AsyncClient, base_url: str):
+    response = await client.get(f"{base_url}example/")
+    assert response.status_code == 200
+```
+
+### Coverage
+
+```bash
+# Generate coverage report
+bash scripts/test.sh --cov=app --cov-report=html
+
+# View report
+open htmlcov/index.html
+```
+
+## Scripts
+
+Utility scripts in the `scripts/` directory:
+
+- `start_server.sh` - Start the development server
+- `test.sh` - Run tests with proper environment
+- `setup_db.sh` - Initialize the database
+- `migrate_db.sh` - Run pending migrations
+- `reset_db.sh` - Reset database (⚠️ destructive)
+- `context.sh` - Generate LLM context from code files
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Run tests and quality checks
+4. Submit a pull request
+
+## License
+
+This project is created with create-fastapi-app.
+
+---
+
+**Generated with** [create-fastapi-app](https://github.com/SenZmaKi/create-fastapi-app)

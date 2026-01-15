@@ -1,0 +1,109 @@
+from datetime import datetime
+from typing import TYPE_CHECKING
+from uuid import uuid4
+from sqlalchemy import ForeignKey, func
+from sqlalchemy import ColumnElement, DateTime, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+from app.utils.utils import utc_now
+{% if enable_soft_delete %}
+from sqlalchemy_easy_softdelete.mixin import generate_soft_delete_mixin_class
+{% endif %}
+{% if enable_auth %}
+
+if TYPE_CHECKING:
+    from app.models.auth import User
+{% endif %}
+
+IDColumn = String(36)  # UUIDs
+StrColumn = String(255)  # General DB strings
+NotesColumn = String(1000)  # Notes/descriptions
+DateTimeColumn = DateTime(timezone=True)
+
+
+class Base(DeclarativeBase):
+    """Base class for all database models."""
+
+    pass
+
+
+class HasNotesMixin:
+    notes: Mapped[str | None] = mapped_column(NotesColumn, nullable=True)
+
+
+class CanExpireMixin:
+    expires_at: Mapped[datetime] = mapped_column(DateTimeColumn, nullable=False)
+
+    @hybrid_property
+    def is_expired(self) -> bool:  # pyright: ignore[reportRedeclaration]
+        return self.expires_at < utc_now()
+
+    @is_expired.expression
+    def is_expired(cls) -> ColumnElement[bool]:
+        return cls.expires_at <= func.timezone("UTC", func.now())
+
+{% if enable_soft_delete %}
+
+# Generate soft delete mixin
+SoftDeleteMixin = generate_soft_delete_mixin_class()
+{% endif %}
+
+
+class IdMixin:
+    __abstract__ = True
+
+    # UUID primary key
+    id: Mapped[str] = mapped_column(
+        IDColumn, primary_key=True, default=lambda: str(uuid4()), nullable=False
+    )
+
+
+class CreatedAtMixin:
+    __abstract__ = True
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTimeColumn, default=utc_now, nullable=False
+    )
+
+
+class UpdatedAtMixin:
+    __abstract__ = True
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTimeColumn,
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
+
+
+class BaseMixin(
+    Base,
+    IdMixin,
+    CreatedAtMixin,
+    UpdatedAtMixin{% if enable_soft_delete %},
+    SoftDeleteMixin{% endif %}
+):
+    """
+    Models that inherit from this class get:
+    - `id`: UUID primary key
+    - `created_at`: Creation timestamp
+    - `updated_at`: Update timestamp{% if enable_soft_delete %}
+
+    - `deleted_at`: Soft delete functionality{% endif %}
+
+    """
+
+    __abstract__ = True
+
+{% if enable_auth %}
+
+class OwnedByUserMixin:
+    user_id: Mapped[str] = mapped_column(
+        IDColumn, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    @declared_attr
+    def user(cls) -> Mapped["User"]:
+        return relationship("User", passive_deletes=True)
+{% endif %}

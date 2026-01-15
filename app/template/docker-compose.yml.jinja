@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: {{ app_name }}-db
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY:-{{ app_name }}}:${IMAGE_TAG:-latest}
+    container_name: {{ app_name }}-migrate
+    command: bash -c "scripts/migrate_db.sh"
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - RUNNING_IN_DOCKER=true
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY:-{{ app_name }}}:${IMAGE_TAG:-latest}
+    container_name: {{ app_name }}-api
+    restart: always
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - RUNNING_IN_DOCKER=true
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - api_logs:/{{ app_name }}/logs
+    ports:
+      - "${FASTAPI_PORT}:${FASTAPI_PORT}"
+
+volumes:
+  postgres_data:
+  api_logs:

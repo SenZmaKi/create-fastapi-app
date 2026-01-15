@@ -1,0 +1,175 @@
+name: CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  # --- CI SECTION ---
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Type check
+        run: uv run pyright
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Lint
+        run: uv run ruff check .
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Format check
+        run: uv run ruff format --exclude "alembic/versions/*" --check .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, format]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: {{ app_name }}-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Set up database
+        env:
+          DEPLOYMENT_ENVIRONMENT: testing
+        run: uv run alembic upgrade head
+      - name: Run tests
+        env:
+          DEPLOYMENT_ENVIRONMENT: testing
+        run: uv run pytest
+{% if enable_vps_deployment %}
+
+  # --- CD SECTION ---
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    # Only deploy on pushes to main or manual dispatch, never on PRs
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment:
+      name: production
+      url: https://{{ app_name }}.example.com
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${ { secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod u=rw,go= ~/.ssh/deploy_key
+          ssh-keyscan -H ${ { secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync to server
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude ".env" \
+            --exclude ".venv/" \
+            --exclude "__pycache__/" \
+            --exclude "*.pyc" \
+            --exclude ".git/" \
+            --exclude ".pytest_cache/" \
+            --exclude ".ruff_cache/" \
+            --rsync-path="sudo rsync" \
+            ./ \
+            ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }}:/var/www/{{ app_name }}/
+
+      - name: Fix directory permissions
+        run: |
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} \
+            "sudo chown -R ${ { secrets.SSH_USER }}:${ { secrets.SSH_USER }} /var/www/{{ app_name }}/ && \
+             chmod +x /var/www/{{ app_name }}/scripts/*.sh"
+
+      - name: Upload .env to server
+        run: |
+          cat > /tmp/{{ app_name }}.env <<'EOF'
+          ${ { secrets.ENV_FILE }}
+          EOF
+          scp -i ~/.ssh/deploy_key /tmp/{{ app_name }}.env \
+            ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }}:/tmp/{{ app_name }}.env
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} \
+            "sudo mv /tmp/{{ app_name }}.env /var/www/{{ app_name }}/.env && \
+             sudo chown deploy:deploy /var/www/{{ app_name }}/.env && \
+             sudo chmod 600 /var/www/{{ app_name }}/.env"
+          rm -f /tmp/{{ app_name }}.env
+
+      - name: Install dependencies on server
+        run: |
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
+            cd /var/www/{{ app_name }} &&
+            if ! command -v uv &> /dev/null; then
+              curl -LsSf https://astral.sh/uv/install.sh | sh
+            fi
+            export PATH=\"\$HOME/.local/bin:\$HOME/.cargo/bin:\$PATH\" &&
+            uv venv .venv &&
+            uv sync --no-dev
+          "
+
+      - name: Run database migrations
+        run: |
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
+            cd /var/www/{{ app_name }} &&
+            export PATH=\"\$HOME/.local/bin:\$HOME/.cargo/bin:\$PATH\" &&
+            bash scripts/create_db.sh &&
+            bash scripts/migrate_db.sh
+          "
+
+      - name: Restart PM2
+        run: |
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
+            sudo -u deploy bash -c '
+              cd /var/www/{{ app_name }} &&
+              export PATH=\"/home/deploy/.local/bin:/home/deploy/.cargo/bin:\$PATH\" &&
+              if pm2 describe {{ app_name }} > /dev/null 2>&1; then
+                pm2 delete {{ app_name }}
+              fi
+              pm2 start pm2.config.js &&
+              pm2 save
+            '
+          "
+
+      - name: Extract FastAPI port
+        id: parse_env
+        run: |
+          PORT=$(echo "${ { secrets.ENV_FILE }}" | grep 'FASTAPI_PORT=' | sed 's/^.*=//')
+          echo "FASTAPI_PORT=$PORT" >> $GITHUB_ENV
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
+            for i in {1..10}; do
+              if curl -f -s http://localhost:${ { env.FASTAPI_PORT }}/api/health > /dev/null 2>&1; then
+                exit 0
+              fi
+              sleep 5
+            done
+            exit 1
+          "
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+{% endif %}

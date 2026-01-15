@@ -49,6 +49,32 @@ A CLI tool to quickly scaffold production-ready FastAPI applications with a well
 
 ## Installation
 
+### Using uvx (Recommended)
+
+Run directly without installation:
+
+```bash
+uvx git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+```
+
+### Using uv
+
+Install globally:
+
+```bash
+uv tool install git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+```
+
+### Using pip
+
+```bash
+pip install git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+```
+
+<!-- TOC --><a name="usage"></a>
+
+## Usage
+
 The CLI can be run directly without installation using `uvx`:
 
 ```bash

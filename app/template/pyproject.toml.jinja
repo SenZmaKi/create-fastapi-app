@@ -1,0 +1,45 @@
+[project]
+name = "{{ app_name }}"
+version = "0.1.0"
+readme = "README.md"
+description = "{{ app_description }}"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.121.0",
+    "uvicorn[standard]>=0.38.0",
+    "pydantic[email]>=2.12.4",
+    "pydantic-settings>=2.11.0",
+    "python-multipart>=0.0.20",
+    "sqlalchemy[asyncio]>=2.0.44",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.11",
+    "alembic>=1.17.1",
+    # Middlewares and utilities
+    "slowapi>=0.1.9",
+    "asgi-correlation-id>=4.3.4",
+    "fastapi-docshield>=0.2.1",
+    "structlog>=25.5.0",
+    "gitignore-parser>=0.1.11",
+{% if enable_auth %}
+    # Auth dependencies
+    "bcrypt>=4.3.1",
+    "fastapi-mail>=1.5.8",
+    "apscheduler>=3.11.1",
+{% endif %}
+{% if enable_soft_delete %}
+    # Soft delete
+    "sqlalchemy-easy-softdelete>=0.8.3",
+{% endif %}
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.407",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-xdist>=3.8.0",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.1",
+    "ruff>=0.14.4",
+]

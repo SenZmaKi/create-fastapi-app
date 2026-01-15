@@ -1,0 +1,283 @@
+import asyncio
+from datetime import timedelta
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+import tenacity
+from app.models.auth import (
+    EmailVerificationCode,
+    PasswordResetCode,
+    User,
+    VerificationCodeMixin,
+)
+from app.services.utils.error import ServiceError
+from app.services.utils.utils import BaseService
+from app.utils.settings import settings
+from app.utils.utils import utc_now
+from app.utils.logger import logger as parent_logger
+from datetime import datetime
+import secrets
+import string
+
+logger = parent_logger.getChild("email")
+
+
+class EmailServiceError(ServiceError):
+    pass
+
+
+class FailedToSendEmailError(EmailServiceError):
+    pass
+
+
+class EmailService(BaseService):
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+        self.conf = ConnectionConfig(
+            MAIL_USERNAME=settings.smtp_host_user,
+            MAIL_PASSWORD=settings.smtp_host_password,  # pyright: ignore[reportArgumentType]
+            MAIL_FROM=settings.smtp_from_email,
+            MAIL_PORT=settings.smtp_port,
+            MAIL_SERVER=settings.smtp_host,
+            MAIL_FROM_NAME=settings.smtp_from_name,
+            MAIL_STARTTLS=settings.smtp_use_tls,
+            MAIL_SSL_TLS=settings.smtp_use_ssl,
+            USE_CREDENTIALS=True,
+            VALIDATE_CERTS=True,
+        )
+        self.fast_mail = FastMail(self.conf)
+
+    @staticmethod
+    def generate_verification_code() -> str:
+        alphanumeric = string.ascii_letters + string.digits
+        return "".join(secrets.choice(alphanumeric) for _ in range(6))
+
+    @staticmethod
+    def get_verification_code_email_html(
+        code: str, title: str, greeting: str, message: str
+    ) -> str:
+        return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #fb923c 0%, #f97316 100%); padding: 40px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">{{ app_name }}</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 20px 0; color: #1f2937; font-size: 24px; font-weight: 600;">{greeting}</h2>
+                            <p style="margin: 0 0 20px 0; color: #4b5563; font-size: 16px; line-height: 1.5;">
+                                {message}
+                            </p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <div style="background-color: #f3f4f6; border-radius: 8px; padding: 30px; display: inline-block;">
+                                            <span style="font-size: 48px; font-weight: 700; letter-spacing: 12px; color: #f97316; font-family: 'Courier New', monospace;">{code}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">
+                                This code will expire in <strong>{settings.verification_code_lifetime_hours} hour{"s" if settings.verification_code_lifetime_hours != 1 else ""}</strong>.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                                © {datetime.now().year} {{ app_name }}. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+
+    async def _create_code(
+        self, user: User, code_class: type[VerificationCodeMixin]
+    ) -> VerificationCodeMixin:
+        await self.db.execute(delete(code_class).where(code_class.user_id == user.id))
+
+        code = self.generate_verification_code()
+        expires_at = utc_now() + timedelta(
+            hours=settings.verification_code_lifetime_hours
+        )
+
+        verification_code = code_class(
+            user_id=user.id, code=code, expires_at=expires_at
+        )
+
+        self.db.add(verification_code)
+        await self.db.flush()
+        await self.db.refresh(verification_code)
+
+        return verification_code
+
+    async def create_verification_code(self, user: User) -> EmailVerificationCode:
+        return await self._create_code(user, EmailVerificationCode)  # type: ignore
+
+    async def create_password_reset_code(self, user: User) -> PasswordResetCode:
+        return await self._create_code(user, PasswordResetCode)  # type: ignore
+
+    @staticmethod
+    def msg_to_string(message: MessageSchema) -> str:
+        return f'Email(subject="{message.subject}", to={message.recipients})'
+
+    @tenacity.retry(
+        wait=tenacity.wait_random_exponential(
+            multiplier=2, min=timedelta(seconds=2), max=timedelta(minutes=5)
+        ),
+        before=lambda retry_state: logger.info(
+            f"Sending {EmailService.msg_to_string(retry_state.kwargs['message'])} (attempt={retry_state.attempt_number})"
+        ),
+        before_sleep=lambda retry_state: logger.info(
+            f"Failed to send {EmailService.msg_to_string(retry_state.kwargs['message'])} after {retry_state.attempt_number} attempts, retrying... Exception: {retry_state.outcome.exception()}"  # pyright: ignore[reportOptionalMemberAccess]"
+        ),
+        retry_error_callback=lambda retry_state: logger.error(
+            f"Completely failed to send {EmailService.msg_to_string(retry_state.kwargs['message'])} after {retry_state.attempt_number} attempts. Exception: {retry_state.outcome.exception()}"  # pyright: ignore[reportOptionalMemberAccess]"
+        ),
+    )
+    async def _send_email_with_retry(self, message: MessageSchema) -> None:
+        """
+        Send email with retry logic.
+        Do not await this method since it could take a long time.
+        """
+        if (
+            settings.deployment_environment == "testing"
+            and not settings.test_send_email
+        ):
+            return
+        try:
+            await self.fast_mail.send_message(message)
+            logger.info(
+                "Sent email", extra={"message": EmailService.msg_to_string(message)}
+            )
+        except Exception as e:
+            raise FailedToSendEmailError(
+                f"Failed to send email: {EmailService.msg_to_string(message)}: {e}"
+            )
+
+    async def _send_verification_code_email(
+        self,
+        user: User,
+        code: str,
+        subject: str,
+        title: str,
+        greeting: str,
+        message_text: str,
+    ) -> None:
+        html = self.get_verification_code_email_html(
+            code=code,
+            title=title,
+            greeting=greeting,
+            message=message_text,
+        )
+
+        message = MessageSchema(
+            subject=subject,
+            recipients=[user.email],  # pyright: ignore[reportArgumentType]
+            body=html,
+            subtype=MessageType.html,
+        )
+
+        asyncio.create_task(self._send_email_with_retry(message=message))
+
+    async def send_verification_email(self, user: User, code: str) -> None:
+        await self._send_verification_code_email(
+            user=user,
+            code=code,
+            subject="Verify Your Email",
+            title="Email Verification",
+            greeting=f"Welcome, {user.first_name}!",
+            message_text="Thank you for registering with Centonomy. To complete your registration, please verify your email address using the code below.",
+        )
+
+    async def send_password_reset_email(self, user: User, code: str) -> None:
+        await self._send_verification_code_email(
+            user=user,
+            code=code,
+            subject="Your Account Security Code",
+            title="Account Security",
+            greeting=f"Hello, {user.first_name}",
+            message_text="We received a request to update your account password. Please use the verification code below to proceed with updating your password.",
+        )
+
+    async def _verify_code(
+        self, user_id: str, code: str, code_class: type[VerificationCodeMixin]
+    ) -> bool:
+        now = utc_now()
+        result = await self.db.execute(
+            select(code_class).where(
+                code_class.user_id == user_id,
+                code_class.code == code,
+                code_class.expires_at > now,
+            )
+        )
+        verification_code = result.scalar_one_or_none()
+        if (
+            settings.deployment_environment == "testing"
+            and not settings.test_verify_code
+        ):
+            return True
+
+        if not verification_code:
+            return False
+
+        await self.db.execute(delete(code_class).where(code_class.user_id == user_id))
+        await self.db.flush()
+
+        return True
+
+    async def verify_email_verification_code(self, user: User, code: str) -> bool:
+        is_valid = await self._verify_code(
+            user_id=user.id, code=code, code_class=EmailVerificationCode
+        )
+        if is_valid:
+            user.is_email_verified = True
+            await self.db.flush()
+        return is_valid
+
+    async def verify_password_reset_code(self, user: User, code: str) -> bool:
+        return await self._verify_code(user.id, code, PasswordResetCode)
+
+    async def cleanup_expired_password_codes(self) -> int:
+        now = utc_now()
+        count_result = await self.db.execute(
+            select(PasswordResetCode).where(PasswordResetCode.expires_at < now)
+        )
+        count = len(list(count_result.scalars().all()))
+        await self.db.execute(
+            delete(PasswordResetCode).where(PasswordResetCode.expires_at < now)
+        )
+        await self.db.flush()
+        return count
+
+    async def cleanup_expired_email_codes(self) -> int:
+        now = utc_now()
+        count_result = await self.db.execute(
+            select(EmailVerificationCode).where(EmailVerificationCode.expires_at < now)
+        )
+        count = len(list(count_result.scalars().all()))
+
+        await self.db.execute(
+            delete(EmailVerificationCode).where(EmailVerificationCode.expires_at < now)
+        )
+        await self.db.flush()
+
+        return count

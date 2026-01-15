@@ -1,0 +1,58 @@
+# Multi-stage build for Python FastAPI application using uv properly
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS builder
+
+# Set working directory
+WORKDIR /{{ app_name }}
+
+# Copy dependency files first (for caching)
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies into a virtual environment using uv's native speed
+# --frozen: don't update lock file
+# --no-dev: skip dev dependencies
+RUN uv sync --frozen --no-dev
+
+# Production stage
+FROM python:3.11-slim
+
+ENV FASTAPI_PORT=8000
+ENV PATH="/{{ app_name }}/.venv/bin:$PATH"
+
+# Set working directory
+WORKDIR /{{ app_name }}
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /{{ app_name }}
+
+# Copy the virtual environment from builder (this is the magic!)
+COPY --from=builder --chown=appuser:appuser /{{ app_name }}/.venv /{{ app_name }}/.venv
+
+# Create necessary directories
+RUN mkdir -p logs data && \
+    chown -R appuser:appuser logs data
+
+# Copy application files LAST (after dependencies)
+COPY --chown=appuser:appuser pyproject.toml alembic.ini ./
+COPY --chown=appuser:appuser scripts/ scripts/
+COPY --chown=appuser:appuser alembic/ alembic/
+COPY --chown=appuser:appuser app/ app/
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE ${FASTAPI_PORT}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${FASTAPI_PORT}/health || exit 1
+
+# Run the application
+CMD ["python", "-m", "app"]
+CMD ["uv", "run", "python", "-m", "app"]

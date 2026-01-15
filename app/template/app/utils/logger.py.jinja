@@ -1,0 +1,105 @@
+import logging
+import sys
+from pathlib import Path
+from typing import NamedTuple
+
+import structlog
+from asgi_correlation_id import correlation_id
+
+
+def add_correlation_id(
+    logger: logging.Logger, method_name: str, event_dict: structlog.typing.EventDict
+) -> structlog.typing.EventDict:
+    """Add request id to log message."""
+    if request_id := correlation_id.get():
+        event_dict["request_id"] = request_id
+    else:
+        event_dict["request_id"] = "N/A"
+    return event_dict
+
+
+def hoist_extra_to_top_level(
+    logger: logging.Logger, method_name: str, event_dict: structlog.typing.EventDict
+) -> structlog.typing.EventDict:
+    """Hoist values from 'extra' dict to top level of event_dict."""
+    if "extra" in event_dict:
+        extra = event_dict.pop("extra")
+        if isinstance(extra, dict):
+            event_dict.update(extra)
+    return event_dict
+
+
+class StructlogFormatters(NamedTuple):
+    console: structlog.stdlib.ProcessorFormatter
+    file: structlog.stdlib.ProcessorFormatter
+
+
+def configure_struct_log() -> StructlogFormatters:
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            add_correlation_id,
+            hoist_extra_to_top_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+    foreign_pre_chain = [
+        structlog.contextvars.merge_contextvars,
+        add_correlation_id,
+        hoist_extra_to_top_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
+    ]
+
+    console_formatter = structlog.stdlib.ProcessorFormatter(
+        foreign_pre_chain=foreign_pre_chain,
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty()),
+        ],
+    )
+
+    file_formatter = structlog.stdlib.ProcessorFormatter(
+        foreign_pre_chain=foreign_pre_chain,
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.processors.JSONRenderer(),
+        ],
+    )
+    return StructlogFormatters(console=console_formatter, file=file_formatter)
+
+
+def configure_logging() -> logging.Logger:
+    formatters = configure_struct_log()
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(formatters.console)
+    console_handler.setLevel(logging.DEBUG)
+    logs_dir = Path("logs")
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    file_handler = logging.FileHandler(logs_dir / "{{ app_name }}.log")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatters.file)
+
+    logger: logging.Logger = structlog.get_logger("{{ app_name }}")
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.DEBUG)
+    logger_blocklist = ["asyncio", "urllib3", "pycountry", "apscheduler"]
+    for module in logger_blocklist:
+        logging.getLogger(module).setLevel(logging.WARNING)
+    return logger
+
+
+logger = configure_logging()

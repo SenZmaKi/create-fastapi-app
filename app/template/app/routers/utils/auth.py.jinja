@@ -1,0 +1,89 @@
+from typing import Annotated
+from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database.session import get_db_session
+from app.models.auth import User
+from app.services.auth import AuthService
+
+
+async def validate_session(session_token: str, auth_service: AuthService) -> User | None:
+    """Validate a session token and return the user if valid."""
+    user = await auth_service.validate_session(session_token)
+    if not user:
+        return None
+    await auth_service.reset_session_expiration(session_token)
+    return user
+
+
+async def get_current_user(
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    db: AsyncSession = Depends(get_db_session),
+) -> User:
+    """
+    Dependency to get the current authenticated user from Authorization Bearer token.
+
+    Raises:
+        HTTPException: HTTP 401 Unauthorized if session is invalid
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    auth_service = AuthService(db)
+    token = auth_service.parse_session_token(authorization)
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = await validate_session(token, auth_service)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
+
+
+async def get_optional_current_user(
+    authorization: Annotated[str | None, Header()] = None,
+    db: AsyncSession = Depends(get_db_session),
+) -> User | None:
+    """
+    Dependency to optionally get the current authenticated user.
+    Returns None if not authenticated.
+    """
+    if not authorization:
+        return None
+
+    auth_service = AuthService(db)
+    token = auth_service.parse_session_token(authorization)
+    if not token:
+        return None
+
+    return await validate_session(token, auth_service)
+
+
+async def get_current_active_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """
+    Dependency to get the current authenticated user that has verified their email.
+
+    Raises:
+        HTTPException: HTTP 403 Forbidden if email is not verified
+    """
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address to continue",
+        )
+    return current_user
