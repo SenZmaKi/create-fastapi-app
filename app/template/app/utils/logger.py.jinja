@@ -2,7 +2,6 @@ import logging
 import sys
 from pathlib import Path
 from typing import NamedTuple
-
 import structlog
 from asgi_correlation_id import correlation_id
 
@@ -22,10 +21,14 @@ def hoist_extra_to_top_level(
     logger: logging.Logger, method_name: str, event_dict: structlog.typing.EventDict
 ) -> structlog.typing.EventDict:
     """Hoist values from 'extra' dict to top level of event_dict."""
-    if "extra" in event_dict:
-        extra = event_dict.pop("extra")
-        if isinstance(extra, dict):
-            event_dict.update(extra)
+    extra = event_dict.get("extra")
+    if not isinstance(extra, dict):
+        return event_dict
+    event_dict.pop("extra")
+    for k, v in extra.items():
+        while k in event_dict:
+            k = f"_{k}"
+        event_dict[k] = v
     return event_dict
 
 
@@ -57,7 +60,6 @@ def configure_struct_log() -> StructlogFormatters:
     foreign_pre_chain = [
         structlog.contextvars.merge_contextvars,
         add_correlation_id,
-        hoist_extra_to_top_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
@@ -78,17 +80,39 @@ def configure_struct_log() -> StructlogFormatters:
             structlog.processors.JSONRenderer(),
         ],
     )
+
     return StructlogFormatters(console=console_formatter, file=file_formatter)
 
 
+def monkey_patch_logger():
+    # HACK: Default logging.Logger reserves some names for keys in extra: https://stackoverflow.com/questions/40862192/
+    # But structlog's wrapping logger fixes it so in order for the fix to work from the root logger (yielded from structlog.get_logger)
+    # down to it's children we patch the getChild method to wrap the children loggers thereby fixing them.
+    original_getChild = logging.Logger.getChild
+
+    def patched_getChild(self, suffix: str) -> logging.Logger:
+        child = original_getChild(self, suffix)
+        return structlog.wrap_logger(child)
+
+    logging.Logger.getChild = patched_getChild
+
+
 def configure_logging() -> logging.Logger:
+    # Apply monkey patch before configuring logging
+    monkey_patch_logger()
+
+    # Configure handlers
     formatters = configure_struct_log()
+
+    # Don't use basicConfig - it creates duplicate handlers
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(formatters.console)
     console_handler.setLevel(logging.DEBUG)
+
     logs_dir = Path("logs")
     logs_dir.mkdir(parents=True, exist_ok=True)
-    file_handler = logging.FileHandler(logs_dir / "{{ app_name }}.log")
+
+    file_handler = logging.FileHandler(logs_dir /"{{ app_name }}.log")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatters.file)
 
@@ -96,9 +120,12 @@ def configure_logging() -> logging.Logger:
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
     logger.setLevel(logging.DEBUG)
+
+    # Set log levels for blocklisted modules
     logger_blocklist = ["asyncio", "urllib3", "pycountry", "apscheduler"]
     for module in logger_blocklist:
         logging.getLogger(module).setLevel(logging.WARNING)
+
     return logger
 
 
