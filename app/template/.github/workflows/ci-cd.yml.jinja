@@ -79,9 +79,9 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          echo "${ { secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod u=rw,go= ~/.ssh/deploy_key
-          ssh-keyscan -H ${{secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${ { secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
       - name: Sync to server
         run: |
@@ -95,22 +95,22 @@ jobs:
             --exclude ".ruff_cache/" \
             --rsync-path="sudo rsync" \
             ./ \
-            ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }}:/var/www/{{ app_name }}/
+            ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }}:/var/www/{{ app_name }}/
 
       - name: Fix directory permissions
         run: |
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} \
-            "sudo chown -R ${{secrets.SSH_USER }}:${{secrets.SSH_USER }} /var/www/{{ app_name }}/ && \
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} \
+            "sudo chown -R ${ { secrets.SSH_USER }}:${ { secrets.SSH_USER }} /var/www/{{ app_name }}/ && \
              chmod +x /var/www/{{ app_name }}/scripts/*.sh"
 
       - name: Upload .env to server
         run: |
           cat > /tmp/{{ app_name }}.env <<'EOF'
-          ${{secrets.ENV_FILE }}
+          ${ { secrets.ENV_FILE }}
           EOF
           scp -i ~/.ssh/deploy_key /tmp/{{ app_name }}.env \
-            ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }}:/tmp/{{ app_name }}.env
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} \
+            ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }}:/tmp/{{ app_name }}.env
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} \
             "sudo mv /tmp/{{ app_name }}.env /var/www/{{ app_name }}/.env && \
              sudo chown deploy:deploy /var/www/{{ app_name }}/.env && \
              sudo chmod 600 /var/www/{{ app_name }}/.env"
@@ -118,7 +118,7 @@ jobs:
 
       - name: Install dependencies on server
         run: |
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
             cd /var/www/{{ app_name }} &&
             if ! command -v uv &> /dev/null; then
               curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -130,7 +130,7 @@ jobs:
 
       - name: Run database migrations
         run: |
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
             cd /var/www/{{ app_name }} &&
             export PATH=\"\$HOME/.local/bin:\$HOME/.cargo/bin:\$PATH\" &&
             bash scripts/create_db.sh &&
@@ -139,7 +139,7 @@ jobs:
 
       - name: Restart PM2
         run: |
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
             sudo -u deploy bash -c '
               cd /var/www/{{ app_name }} &&
               export PATH=\"/home/deploy/.local/bin:/home/deploy/.cargo/bin:\$PATH\" &&
@@ -154,14 +154,14 @@ jobs:
       - name: Extract FastAPI port
         id: parse_env
         run: |
-          PORT=$(echo "${{secrets.ENV_FILE }}" | grep 'FASTAPI_PORT=' | sed 's/^.*=//')
+          PORT=$(echo "${ { secrets.ENV_FILE }}" | grep 'FASTAPI_PORT=' | sed 's/^.*=//')
           echo "FASTAPI_PORT=$PORT" >> $GITHUB_ENV
 
       - name: Health check
         run: |
-          ssh -i ~/.ssh/deploy_key ${{secrets.SSH_USER }}@${{secrets.SERVER_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${ { secrets.SSH_USER }}@${ { secrets.SERVER_HOST }} "
             for i in {1..10}; do
-              if curl -f -s http://localhost:${{env.FASTAPI_PORT }}/api/health > /dev/null 2>&1; then
+              if curl -f -s http://localhost:${ { env.FASTAPI_PORT }}/api/health > /dev/null 2>&1; then
                 exit 0
               fi
               sleep 5

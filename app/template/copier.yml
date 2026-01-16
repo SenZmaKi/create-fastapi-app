@@ -56,9 +56,9 @@ _exclude:
 
   # Conditional excludes based on options
   # Docker
-  - "{% if not enable_docker %}Dockerfile.jinja{% endif %}"
-  - "{% if not enable_docker %}.dockerignore.jinja{% endif %}"
-  - "{% if not enable_docker %}docker-compose.yml.jinja{% endif %}"
+  - "{% if not enable_docker %}Dockerfile{% endif %}"
+  - "{% if not enable_docker %}.dockerignore{% endif %}"
+  - "{% if not enable_docker %}docker-compose.yml{% endif %}"
   - "{% if not enable_docker %}.github/workflows/docker.yml{% endif %}"
   # Auth
   - "{% if not enable_auth %}app/services/auth.py{% endif %}"
@@ -67,7 +67,7 @@ _exclude:
   - "{% if not enable_auth %}app/dtos/auth.py{% endif %}"
   - "{% if not enable_auth %}app/models/auth.py{% endif %}"
   - "{% if not enable_auth %}app/services/scheduler.py{% endif %}"
-  - "{% if not enable_auth %}app/services/email.py.jinja{% endif %}"
+  - "{% if not enable_auth %}app/services/email.py{% endif %}"
   - "{% if not enable_auth %}test/test_auth.py{% endif %}"
   # VPS
-  - "{% if not enable_vps_deployment %}pm2.config.js.jinja{% endif %}"
+  - "{% if not enable_vps_deployment %}pm2.config.js{% endif %}"
