@@ -43,25 +43,19 @@ CodeStr = Annotated[
 ]
 
 
-class RequestVerificationCodeRequest(BaseModel):
-    email: EmailStr
-
-
-class VerificationCodeVerifyRequest(BaseModel):
-    email: EmailStr
+class EmailVerificationRequest(BaseModel):
     code: CodeStr
 
 
-class RequestPasswordResetCodeRequest(BaseModel):
+class ResendEmailVerificationRequest(BaseModel):
     email: EmailStr
 
 
-class PasswordResetCodeVerifyRequest(BaseModel):
+class ForgotPasswordRequest(BaseModel):
     email: EmailStr
-    code: CodeStr
 
 
-class PasswordResetRequest(BaseModel):
+class ResetPasswordRequest(BaseModel):
     email: EmailStr
     code: CodeStr
     new_password: PasswordStr

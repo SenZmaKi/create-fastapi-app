@@ -122,7 +122,7 @@ def install_dependencies(app_dir: Path) -> None:
 
 def setup_database(app_dir: Path) -> None:
     run_process(
-        ["uv", "run", "python", "-m", "scripts.create_db"],
+        ["uv", "run", "python", "-m", "scripts.db.create"],
         SetupDatabaseError,
         cwd=app_dir,
     )

@@ -4,6 +4,7 @@ from fastapi import Request, Response
 from pydantic import SecretStr
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 import bcrypt
 from app.dtos.auth import UserCreateRequest, UserLoginRequest
 from app.models.auth import User, Session
@@ -12,6 +13,7 @@ from app.services.utils.utils import BaseService
 from app.utils.utils import utc_now
 from app.utils.logger import logger
 from app.utils.settings import settings
+from sqlalchemy import update
 
 
 class AuthServiceError(ServiceError):
@@ -66,157 +68,173 @@ class AuthService(BaseService):
         response.headers["Authorization"] = f"Bearer {session.session_token}"
 
     async def register_user(
-        self, user_data: UserCreateRequest, request: Request
-    ) -> tuple[User, Session] | UserAlreadyExistsError:
+        self, user_data: UserCreateRequest
+    ) -> User | UserAlreadyExistsError:
         email = user_data.email
+        name = user_data.name
+        password = user_data.password
+        phone_number = user_data.phone_number
+        self.logger.info("Registering user", extra={"email": email, "user_name": name})
 
-        # Check if user already exists
-        result = await self.db.execute(select(User).where(User.email == email))
-        existing_user = result.scalar_one_or_none()
+        existing_user = await self.db.execute(select(User).where(User.email == email))
+        existing = existing_user.scalar_one_or_none()
 
-        if existing_user:
-            self.logger.warning(
-                "User registration failed: email already exists", extra={"email": email}
-            )
-            return UserAlreadyExistsError(f"User with email {email} already exists")
+        if existing:
+            if existing.is_email_verified:
+                self.logger.warning("User already exists", extra={"email": email})
+                return UserAlreadyExistsError()
+            else:
+                self.logger.info(
+                    "Deleting existing unverified user",
+                    extra={"email": email, "user_id": existing.id},
+                )
+                await self.db.delete(existing)
+                await self.db.flush()
 
-        # Create new user
-        password_hash = self.get_password_hash(user_data.password)
+        password_hash = self.get_password_hash(password)
+
         user = User(
-            name=user_data.name,
+            name=name,
             email=email,
-            phone_number=user_data.phone_number,
+            phone_number=phone_number,
             password_hash=password_hash,
+            is_email_verified=False,
         )
 
         self.db.add(user)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(user)
-
-        # Create session
-        session_token = secrets.token_urlsafe(32)
-        expires_at = utc_now() + timedelta(hours=settings.session_lifetime_hours)
-
-        ip_address = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent")
-
-        session = Session(
-            user_id=user.id,
-            session_token=session_token,
-            expires_at=expires_at,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-
-        self.db.add(session)
-        await self.db.commit()
-        await self.db.refresh(session)
-
         self.logger.info(
             "User registered successfully", extra={"user_id": user.id, "email": email}
         )
-        return user, session
 
-    async def login_user(
-        self, login_data: UserLoginRequest, request: Request
-    ) -> (
-        tuple[User, Session]
-        | UserNotFoundError
-        | InvalidPasswordError
-        | UserNotVerifiedError
-    ):
+        return user
+
+    async def authenticate_user(
+        self, login_data: UserLoginRequest
+    ) -> User | InvalidPasswordError | UserNotFoundError:
         email = login_data.email
+        password = login_data.password
+        self.logger.info("Authenticating user", extra={"email": email})
 
-        # Find user
-        result = await self.db.execute(select(User).where(User.email == email))
-        user = result.scalar_one_or_none()
-
+        user = (
+            await self.db.execute(select(User).where(User.email == email))
+        ).scalar_one_or_none()
         if not user:
-            self.logger.warning("Login failed: user not found", extra={"email": email})
-            return UserNotFoundError(f"User with email {email} not found")
-
-        # Verify password
-        if not self.verify_password(login_data.password, user.password_hash):
             self.logger.warning(
-                "Login failed: invalid password", extra={"user_id": user.id}
+                "User not found during authentication", extra={"email": email}
             )
-            return InvalidPasswordError("Invalid password")
+            return UserNotFoundError()
 
-        # Check email verification
-        if not user.is_email_verified:
-            self.logger.warning(
-                "Login failed: email not verified", extra={"user_id": user.id}
+        if user and self.verify_password(password, user.password_hash):
+            self.logger.info(
+                "User authenticated successfully", extra={"user_id": user.id}
             )
-            return UserNotVerifiedError("Email not verified")
+            return user
 
-        # Create session
-        session_token = secrets.token_urlsafe(32)
+        self.logger.warning("Invalid password for user", extra={"email": email})
+        return InvalidPasswordError()
+
+    async def create_session(
+        self, user: User, request: Request | None = None
+    ) -> Session:
+        self.logger.info("Creating session for user", extra={"user_id": user.id})
+        session_token = secrets.token_urlsafe(43)
+        ip_address: str | None = None
+        user_agent: str | None = None
+        if request:
+            ip_address = request.client.host if request.client else None
+            user_agent = request.headers.get("user-agent")
+
         expires_at = utc_now() + timedelta(hours=settings.session_lifetime_hours)
-
-        ip_address = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent")
 
         session = Session(
             user_id=user.id,
             session_token=session_token,
-            expires_at=expires_at,
             ip_address=ip_address,
             user_agent=user_agent,
+            expires_at=expires_at,
         )
 
         self.db.add(session)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(session)
-
-        self.logger.info("User logged in successfully", extra={"user_id": user.id})
-        return user, session
-
-    async def logout_user(self, user_id: str) -> None:
-        await self.db.execute(delete(Session).where(Session.user_id == user_id))
-        await self.db.commit()
-        self.logger.info("User logged out", extra={"user_id": user_id})
-
-    async def get_session(self, session_token: str) -> Session | None:
-        result = await self.db.execute(
-            select(Session).where(Session.session_token == session_token)
+        self.logger.info(
+            "Session created successfully",
+            extra={"session_id": session.id, "user_id": user.id},
         )
-        session = result.scalar_one_or_none()
-
-        if session and session.is_expired:
-            await self.db.delete(session)
-            await self.db.commit()
-            return None
 
         return session
 
-    async def get_user_by_id(self, user_id: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.id == user_id))
-        return result.scalar_one_or_none()
-
     async def validate_session(self, session_token: str) -> User | None:
-        """Validate session token and return user if valid."""
-        session = await self.get_session(session_token)
-        if not session:
-            return None
-        return await self.get_user_by_id(session.user_id)
-
-    async def reset_session_expiration(self, session_token: str) -> None:
-        """Reset session expiration time."""
+        self.logger.debug("Validating session")
+        now = utc_now()
         result = await self.db.execute(
-            select(Session).where(Session.session_token == session_token)
+            select(Session)
+            .where(Session.session_token == session_token, Session.expires_at > now)
+            .options(selectinload(Session.user))
         )
         session = result.scalar_one_or_none()
 
-        if session:
-            session.expires_at = utc_now() + timedelta(
-                hours=settings.session_lifetime_hours
-            )
-            await self.db.commit()
+        if session is None:
+            self.logger.debug("Session not found or expired")
+            return None
 
-    def set_session_cookie(self, response: Response, session: Session) -> None:
-        """Set session token in response header."""
-        response.headers["Authorization"] = f"Bearer {session.session_token}"
+        self.logger.debug(
+            "Session validated successfully",
+            extra={"session_id": session.id, "user_id": session.user.id},
+        )
+        return session.user
 
-    def clear_session_cookie(self, response: Response) -> None:
-        """Clear session token from response."""
-        response.headers["Authorization"] = ""
+    async def reset_session_expiration(self, session_token: str) -> None:
+        self.logger.debug("Resetting session expiration")
+        expires_at = utc_now() + timedelta(hours=settings.session_lifetime_hours)
+        await self.db.execute(
+            update(Session)
+            .where(Session.session_token == session_token)  # <- Specific session
+            .values(expires_at=expires_at)
+        )
+        await self.db.flush()
+        self.logger.debug("Session expiration reset successfully")
+
+    async def logout(self, session_token: str) -> None:
+        self.logger.info("Logging out user")
+        await self.db.execute(
+            delete(Session).where(Session.session_token == session_token)
+        )
+        await self.db.flush()
+        self.logger.info("User logged out successfully")
+
+    async def get_user_by_email(self, email: str) -> User | None:
+        self.logger.debug("Getting user by email", extra={"email": email})
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
+
+    async def get_verified_user_by_id(
+        self, user_id: str
+    ) -> User | UserNotFoundError | UserNotVerifiedError:
+        self.logger.debug("Getting verified user by ID", extra={"user_id": user_id})
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            self.logger.warning("User not found", extra={"user_id": user_id})
+            return UserNotFoundError()
+
+        if not user.is_email_verified:
+            self.logger.warning("User not verified", extra={"user_id": user_id})
+            return UserNotVerifiedError()
+
+        self.logger.debug("Verified user found", extra={"user_id": user_id})
+        return user
+
+    async def reset_password(self, user: User, new_password: SecretStr) -> None:
+        self.logger.info("Resetting password for user", extra={"user_id": user.id})
+        password_hash = self.get_password_hash(new_password)
+        user.password_hash = password_hash
+        # Invalidate all existing sessions
+        await self.db.execute(delete(Session).where(Session.user_id == user.id))
+        await self.db.flush()
+        self.logger.info(
+            "Password reset successfully for user", extra={"user_id": user.id}
+        )

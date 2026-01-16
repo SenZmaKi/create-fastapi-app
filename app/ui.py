@@ -94,7 +94,9 @@ def get_user_input() -> AppConfig:
         validate=lambda text: True if text.strip() else "App name ui cannot be empty",
     ).ask()
 
-    app_description = questionary.text("App description:", style=custom_style).ask()
+    app_description = questionary.text(
+        "App description:", style=custom_style, default="A FastAPI application"
+    ).ask()
 
     if app_description is None:
         console.print("[red]✗[/red] Operation cancelled.")

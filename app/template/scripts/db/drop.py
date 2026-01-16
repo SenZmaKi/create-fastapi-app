@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 from app.utils.settings import settings
 from scripts.utils.utils import print_colored
@@ -51,7 +50,7 @@ def main() -> int:
     print("================================")
     print("💣  Database Teardown")
     print("================================")
-    print(f"\nEnvironment: {settings.env}")
+    print(f"\nEnvironment: {settings.deployment_environment}")
 
     db_info = get_db_info()
     print(db_info)
