@@ -2,12 +2,11 @@ from fastapi import APIRouter
 from app.routers import root
 from app.routers import health
 from app.routers import api
-{% if enable_auth %}
+{%- if enable_auth %}
 from app.routers import auth
 
 api.router.include_router(auth.router)
-{% else %}
+{%- endif %}
 
-{% endif %}
 root_router.include_router(health.router)
 root_router.include_router(api.router)

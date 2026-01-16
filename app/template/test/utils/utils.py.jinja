@@ -3,16 +3,16 @@ import secrets
 import string
 import uuid
 from typing import NamedTuple
-{% if enable_auth %}
+{%- if enable_auth %}
 from httpx import AsyncClient, Response
-{% else %}
+{%- else %}
 from httpx import Response
-{% endif %}
+{%- endif %}
 from pytest import fail
 from app.dtos.tools.utils.utils import TimeFrequencies
-{% if enable_auth %} 
+{%- if enable_auth %}
 from app.utils.utils import utc_now
-{% endif %}
+{%- endif %}
 from datetime import datetime
 
 

@@ -27,27 +27,27 @@
   - DocShield (API docs protection in production)
   - CORS configuration
 - 🧪 **Testing** - Pytest with parallel execution and ASGI test client
-{% if enable_docker %}
+{%- if enable_docker %}
 - **Docker** - Multi-stage build with uv for optimal image size
-{% endif %}
-{% if enable_auth %}
+{%- endif %}
+{%- if enable_auth %}
 - **Authentication** - Built-in user authentication with email verification
-{% endif %}
-{% if enable_soft_delete %}
+{%- endif %}
+{%- if enable_soft_delete %}
 - **Soft Delete** - Safe data deletion with recovery options
-{% endif %}
-{% if enable_vps_deployment %}
+{%- endif %}
+{%- if enable_vps_deployment %}
 - **VPS Deployment** - PM2 process management with CI/CD workflows
-{% endif %}
+{%- endif %}
 
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - [PostgreSQL](https://www.postgresql.org/) (Database)
 - [Git](https://git-scm.com/) (Version control)
-{% if enable_docker %}
+{%- if enable_docker %}
 - [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) (Containerization)
-{% endif %}
+{%- endif %}
 
 ## Quick Start
 
@@ -94,10 +94,10 @@ The API will be available at `http://localhost:8000/` with interactive documenta
 ├── alembic/                 # Database migrations
 ├── scripts/                 # Utility scripts
 ├── test/                    # Test files
-{% if enable_docker %}
+{%- if enable_docker %}
 ├── Dockerfile               # Docker image definition
 ├── docker-compose.yml       # Docker services
-{% endif %}
+{%- endif %}
 {% if enable_vps_deployment %}
 ├── pm2.config.js            # PM2 process configuration
 {% endif %}

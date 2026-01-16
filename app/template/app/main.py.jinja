@@ -15,9 +15,9 @@ from app.routers.root import router as root_router
 from app.database import close_db, init_db
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-{% if enable_auth %}
+{%- if enable_auth %}
 from app.services.scheduler import get_scheduler_service
-{% endif %}
+{%- endif %}
 
 
 def add_middlewares(app: FastAPI) -> None:
@@ -37,18 +37,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         "Starting server", extra={"environment": settings.deployment_environment}
     )
     await init_db()
-    {% if enable_auth %}
+    {%- if enable_auth %}
     scheduler_service = get_scheduler_service()
     scheduler_service.start_scheduler()
-    {% endif %}
+    {%- endif %}
 
     yield
 
     # Shutdown
     logger.info("Shutting down server")
-    {% if enable_auth %}
+    {%- if enable_auth %}
     scheduler_service.shutdown_scheduler()
-    {% endif %}
+    {%- endif %}
     await close_db()
 
 

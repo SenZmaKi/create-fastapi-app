@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
-{% if enable_auth %}
+{%- if enable_auth %}
 
     # Sessions
     session_lifetime_hours: int = 24
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     # Testing
     test_send_email: bool = False
     test_verify_code: bool = False
-{% endif %}
+{%- endif %}
 
     def get_database_url(self) -> str:
         db = (

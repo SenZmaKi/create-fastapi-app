@@ -61,7 +61,7 @@ jobs:
         env:
           DEPLOYMENT_ENVIRONMENT: testing
         run: uv run pytest
-{% if enable_vps_deployment %}
+{%- if enable_vps_deployment %}
 
   # --- CD SECTION ---
   deploy:

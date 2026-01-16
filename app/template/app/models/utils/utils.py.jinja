@@ -6,14 +6,14 @@ from sqlalchemy import ColumnElement, DateTime, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from app.utils.utils import utc_now
-{% if enable_soft_delete %}
+{%- if enable_soft_delete %}
 from sqlalchemy_easy_softdelete.mixin import generate_soft_delete_mixin_class
-{% endif %}
-{% if enable_auth %}
+{%- endif %}
+{%- if enable_auth %}
 
 if TYPE_CHECKING:
     from app.models.auth import User
-{% endif %}
+{%- endif %}
 
 IDColumn = String(36)  # UUIDs
 StrColumn = String(255)  # General DB strings
@@ -38,11 +38,12 @@ class CanExpireMixin:
     def is_expired(cls) -> ColumnElement[bool]:
         return cls.expires_at <= func.timezone("UTC", func.now())
 
-{% if enable_soft_delete %}
+
+{%- if enable_soft_delete %}
 
 # Generate soft delete mixin
 SoftDeleteMixin = generate_soft_delete_mixin_class()
-{% endif %}
+{%- endif %}
 
 
 class IdMixin:
@@ -84,9 +85,10 @@ class BaseMixin(
     Models that inherit from this class get:
     - `id`: UUID primary key
     - `created_at`: Creation timestamp
-    - `updated_at`: Update timestamp{% if enable_soft_delete %}
-
-    - `deleted_at`: Soft delete functionality{% endif %}
+    - `updated_at`: Update timestamp
+    {%- if enable_soft_delete %}
+    - `deleted_at`: Soft delete functionality
+    {%- endif %}
     """
 
     __abstract__ = True
