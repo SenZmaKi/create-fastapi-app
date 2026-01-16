@@ -64,7 +64,6 @@ def copy_template(config: AppConfig) -> Path:
         data = {
             "app_name": config.name,
             "app_description": config.description,
-            "setup_database": config.setup_database,
             "enable_docker": config.enable_docker,
             "enable_auth": config.enable_auth,
             "enable_soft_delete": config.enable_soft_delete,
@@ -76,46 +75,8 @@ def copy_template(config: AppConfig) -> Path:
             src_path=str(TEMPLATE_DIR),
             dst_path=str(app_dir),
             data=data,
-            unsafe=True,
             quiet=True,
         )
-
-        # Post-process: Remove conditional files that Copier didn't exclude
-        # This is a workaround since Copier's _exclude with Jinja doesn't always work reliably
-        if not config.enable_auth:
-            auth_files = [
-                app_dir / "app" / "services" / "auth.py",
-                app_dir / "app" / "services" / "email.py",
-                app_dir / "app" / "services" / "scheduler.py",
-                app_dir / "app" / "routers" / "auth.py",
-                app_dir / "app" / "routers" / "utils" / "auth.py",
-                app_dir / "app" / "dtos" / "auth.py",
-                app_dir / "app" / "models" / "auth.py",
-            ]
-            for file in auth_files:
-                if file.exists():
-                    file.unlink()
-
-            # Remove utils directory if it's empty
-            utils_dir = app_dir / "app" / "routers" / "utils"
-            if utils_dir.exists() and not any(utils_dir.iterdir()):
-                utils_dir.rmdir()
-
-        if not config.enable_docker:
-            docker_files = [
-                app_dir / "Dockerfile",
-                app_dir / ".dockerignore",
-                app_dir / "docker-compose.yml",
-                app_dir / ".github" / "workflows" / "docker.yml",
-            ]
-            for file in docker_files:
-                if file.exists():
-                    file.unlink()
-
-        if not config.enable_vps_deployment:
-            pm2_file = app_dir / "pm2.config.js"
-            if pm2_file.exists():
-                pm2_file.unlink()
 
         return app_dir
     except Exception as e:

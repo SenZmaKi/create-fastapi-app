@@ -1,29 +1,52 @@
-from typing import Annotated
-from fastapi import Depends, Header, HTTPException, status
+from app.database import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.session import get_db_session
+from app.services.email import EmailService
+from app.services.health import HealthService
+from typing import Annotated
+{% if enable_auth %}
+from fastapi import Depends, Header, HTTPException, status
 from app.models.auth import User
 from app.services.auth import AuthService
+{% else %}
+from fastapi import Depends
+{% endif %}
+
+DBSessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
+HealthServiceDependency = Annotated[
+    HealthService,
+    Depends(lambda db=Depends(get_db_session): HealthService(db=db)),
+]
 
 
-async def validate_session(session_token: str, auth_service: AuthService) -> User | None:
-    """Validate a session token and return the user if valid."""
+{% if enable_auth %}
+AuthServiceDependency = Annotated[
+    AuthService,
+    Depends(lambda db=Depends(get_db_session): AuthService(db=db)),
+]
+EmailServiceDependency = Annotated[
+    EmailService,
+    Depends(lambda db=Depends(get_db_session): EmailService(db=db)),
+]
+
+async def validate_session(
+    session_token: str, auth_service: AuthService
+) -> User | None:
     user = await auth_service.validate_session(session_token)
     if not user:
-        return None
+        return
     await auth_service.reset_session_expiration(session_token)
     return user
 
 
 async def get_current_user(
+    auth_service: AuthServiceDependency,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
-    db: AsyncSession = Depends(get_db_session),
 ) -> User:
     """
     Dependency to get the current authenticated user from Authorization Bearer token.
 
     Raises:
-        HTTPException: HTTP 401 Unauthorized if session is invalid
+        HTTPException: `HTTP 401 Unauthorized` If session is invalid
     """
     if not authorization:
         raise HTTPException(
@@ -31,9 +54,7 @@ async def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    auth_service = AuthService(db)
-    token = auth_service.parse_session_token(authorization)
+    token = AuthService.parse_session_token(authorization)
 
     if not token:
         raise HTTPException(
@@ -54,36 +75,43 @@ async def get_current_user(
 
 
 async def get_optional_current_user(
+    auth_service: AuthServiceDependency,
     authorization: Annotated[str | None, Header()] = None,
-    db: AsyncSession = Depends(get_db_session),
 ) -> User | None:
     """
     Dependency to optionally get the current authenticated user.
-    Returns None if not authenticated.
+    Returns None if not authenticated
     """
     if not authorization:
         return None
 
-    auth_service = AuthService(db)
-    token = auth_service.parse_session_token(authorization)
+    token = AuthService.parse_session_token(authorization)
     if not token:
         return None
 
     return await validate_session(token, auth_service)
 
 
-async def get_current_active_user(
+async def get_verified_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     """
     Dependency to get the current authenticated user that has verified their email.
 
     Raises:
-        HTTPException: HTTP 403 Forbidden if email is not verified
+        HTTPException: `HTTP 403 Forbidden` If email is not verified
     """
-    if not current_user.is_verified:
+    if not current_user.is_email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email address to continue",
         )
     return current_user
+
+
+CurrentUserDependency = Annotated[User, Depends(get_current_user)]
+VerifiedUserDependency = Annotated[User, Depends(get_verified_user)]
+OptionalCurrentUserDependency = Annotated[
+    User | None, Depends(get_optional_current_user)
+]
+{% endif %}

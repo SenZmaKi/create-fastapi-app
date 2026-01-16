@@ -1,11 +1,13 @@
 from fastapi import APIRouter
-from app.routers.root import router as root_router_base
-from app.routers.health import router as health_router
-{% if enable_auth %}from app.routers.auth import router as auth_router
-{% endif %}
+from app.routers import root
+from app.routers import health
+from app.routers import api
+{% if enable_auth %}
+from app.routers import auth
 
-root_router = APIRouter(prefix="")
-root_router.include_router(root_router_base)
-root_router.include_router(health_router)
-{% if enable_auth %}root_router.include_router(auth_router)
-{% endif %}# Add your additional routers here
+api.router.include_router(auth.router)
+{% else %}
+
+{% endif %}
+root_router.include_router(health.router)
+root_router.include_router(api.router)

@@ -5,10 +5,6 @@ _templates_suffix: .jinja
 _skip_if_exists:
   - .env
 
-# Jinja extensions
-_jinja_extensions:
-  - jinja2.ext.do
-
 # Questions
 app_name:
   type: str
@@ -20,11 +16,6 @@ app_description:
   help: App description
   default: "A FastAPI application"
 
-setup_database:
-  type: bool
-  help: Setup database?
-  default: yes
-
 enable_docker:
   type: bool
   help: Enable Docker integration?
@@ -32,12 +23,12 @@ enable_docker:
 
 enable_auth:
   type: bool
-  help: Enable authentication system?
+  help: Enable authentication integration?
   default: yes
 
 enable_soft_delete:
   type: bool
-  help: Enable soft delete for models?
+  help: Enable soft delete integration?
   default: yes
 
 enable_vps_deployment:
@@ -57,23 +48,21 @@ _exclude:
   - "*.egg-info"
   - ".venv"
   - "logs"
-  
-  # Conditional excludes based on options
-  - "{% if not enable_docker %}Dockerfile.jinja{% endif %}"
-  - "{% if not enable_docker %}.dockerignore.jinja{% endif %}"
-  - "{% if not enable_docker %}docker-compose.yml.jinja{% endif %}"
-  - "{% if not enable_docker %}.github/workflows/docker.yml{% endif %}"
-  - "{% if not enable_auth %}app/services/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/routers/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/routers/utils/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/routers/utils/__init__.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/dtos/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/models/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/services/scheduler.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/services/email.py.jinja{% endif %}"
-  - "{% if not enable_vps_deployment %}pm2.config.js{% endif %}"
-  - "{% if not enable_auth %}app/models/auth.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/services/scheduler.py.jinja{% endif %}"
-  - "{% if not enable_auth %}app/services/email.py.jinja{% endif %}"
-  - "{% if not enable_vps_deployment %}pm2.config.js{% endif %}"
 
+  # Conditional excludes based on options
+  # Docker
+  - "{% if not _enable_docker %}Dockerfile.jinja{% endif %}"
+  - "{% if not _enable_docker %}.dockerignore.jinja{% endif %}"
+  - "{% if not _enable_docker %}docker-compose.yml.jinja{% endif %}"
+  - "{% if not _enable_docker %}.github/workflows/docker.yml{% endif %}"
+  # Auth
+  - "{% if not _enable_auth %}app/services/auth.py{% endif %}"
+  - "{% if not _enable_auth %}app/routers/auth.py{% endif %}"
+  - "{% if not _enable_auth %}app/routers/utils/auth.py{% endif %}"
+  - "{% if not _enable_auth %}app/dtos/auth.py{% endif %}"
+  - "{% if not _enable_auth %}app/models/auth.py{% endif %}"
+  - "{% if not _enable_auth %}app/services/scheduler.py{% endif %}"
+  - "{% if not _enable_auth %}app/services/email.py.jinja{% endif %}"
+  - "{% if not _enable_auth %}test/test_auth.py{% endif %}"
+  # VPS
+  - "{% if not _enable_vps_deployment %}pm2.config.js.jinja{% endif %}"

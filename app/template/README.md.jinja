@@ -17,66 +17,66 @@
 
 ## Features
 
-- ⚡ **FastAPI** - Modern, fast web framework with automatic API documentation
-- 🗄️ **PostgreSQL** - Robust database with SQLAlchemy ORM and Alembic migrations
-- 🔒 **Type Safety** - Full type checking with Pyright and Pydantic
-- 📝 **Structured Logging** - Comprehensive logging with Structlog and request correlation IDs
-- 🛡️ **Security Middlewares**:
+- **FastAPI** - Modern, fast web framework with automatic API documentation
+- **PostgreSQL** - Robust database with SQLAlchemy ORM and Alembic migrations
+- **Type Safety** - Full type checking with Pyright and Pydantic
+- **Structured Logging** - Comprehensive logging with Structlog and request correlation IDs
+- **Security Middlewares**:
   - Rate limiting (SlowAPI)
   - Request ID tracking
   - DocShield (API docs protection in production)
   - CORS configuration
 - 🧪 **Testing** - Pytest with parallel execution and ASGI test client
 {% if enable_docker %}
-- 🐳 **Docker** - Multi-stage build with uv for optimal image size
+- **Docker** - Multi-stage build with uv for optimal image size
 {% endif %}
 {% if enable_auth %}
-- 🔐 **Authentication** - Built-in user authentication with email verification
+- **Authentication** - Built-in user authentication with email verification
 {% endif %}
 {% if enable_soft_delete %}
-- 🗑️ **Soft Delete** - Safe data deletion with recovery options
+- **Soft Delete** - Safe data deletion with recovery options
 {% endif %}
 {% if enable_vps_deployment %}
-- 🚀 **VPS Deployment** - PM2 process management with CI/CD workflows
+- **VPS Deployment** - PM2 process management with CI/CD workflows
 {% endif %}
 
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
-- PostgreSQL 16+
-- Git
+- [PostgreSQL](https://www.postgresql.org/) (Database)
+- [Git](https://git-scm.com/) (Version control)
 {% if enable_docker %}
-- Docker & Docker Compose (optional)
+- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) (Containerization)
 {% endif %}
 
 ## Quick Start
 
-1. **Install dependencies:**
+1. **Install dependencies**
 
 ```bash
 uv sync
 ```
 
-2. **Set up environment variables:**
+2. **Set up environment variables**
 
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-3. **Set up the database:**
+3. **Set up the database**
 
 ```bash
 bash scripts/setup_db.sh
 ```
 
-4. **Run the application:**
+4. **Run the application**
 
 ```bash
 bash scripts/start_server.sh
 ```
 
-The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+The API will be available at `http://localhost:8000/` with interactive documentation at `http://localhost:8000/docs`.
 
 ## Project Structure
 
@@ -90,7 +90,7 @@ The API will be available at `http://localhost:8000` with interactive documentat
 │   ├── models/              # SQLAlchemy models
 │   ├── routers/             # API route handlers
 │   ├── services/            # Business logic
-│   └── utils/               # Utilities and settings
+│   └── utils/               # Global utilities and settings
 ├── alembic/                 # Database migrations
 ├── scripts/                 # Utility scripts
 ├── test/                    # Test files
@@ -110,60 +110,109 @@ The API will be available at `http://localhost:8000` with interactive documentat
 
 ### Adding a New Feature
 
-1. **Create database model** (if needed):
+1. **Create database model** 
 
 ```python
 # app/models/example.py
-from app.models.utils.utils import BaseMixin
+from app.models.utils.utils import BaseMixin, StrColumn
 
 class Example(BaseMixin):
     __tablename__ = "examples"
     
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(StrColumn, nullable=False)
 ```
 
-2. **Create migration:**
+2. **Import model to alembic**
+```python
+# alembic/env.py
+...
+from app.models import example # noqa: F401
+...
+```
+
+3. **Create migration**
 
 ```bash
 uv run alembic revision --autogenerate -m "add example table"
-uv run alembic upgrade head
+scripts/migrate_db.sh
 ```
 
-3. **Create DTOs:**
+4. **Create DTOs**
 
 ```python
 # app/dtos/example.py
 from pydantic import BaseModel
+from pydantic_settings import ConfigDict
 
-class ExampleCreate(BaseModel):
+class ExampleCreateRequest(BaseModel):
     name: str
 
 class ExampleResponse(BaseModel):
     id: str
     name: str
+
+    model_config = ConfigDict(from_attributes=True)
 ```
 
-4. **Create router:**
+5. **Create service**
+
+```python
+# app/services/example.py
+from app.models.example import Example
+from app.services.utils.utils import BaseService
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.dtos.example import ExampleCreateRequest
+
+class ExampleService(BaseService):
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+    
+    async def create_example(self, example_data: ExampleCreateRequest) -> Example:
+        example = Example(name=example_data.name)
+        await self.db.add(example)
+        await self.db.flush()
+        await self.db.refresh(example)
+        return example
+```
+
+6. **Create service dependency**
+```python
+# app/utils/dependencies.py
+...
+ExampleServiceDependency = Annotated[
+    ExampleService,
+    Depends(lambda db=Depends(get_db_session): ExampleService(db=db)),
+]
+...
+```
+
+7. **Create router**
 
 ```python
 # app/routers/example.py
 from fastapi import APIRouter
+from app.utils.dependencies import ExampleServiceDependency
+from app.dtos.example import ExampleCreateRequest, ExampleResponse
 
 router = APIRouter(prefix="/examples", tags=["examples"])
 
-@router.post("/", response_model=ExampleResponse)
-async def create_example(data: ExampleCreate):
-    # Implementation
-    pass
+@router.post("/", )
+async def create_example(example_data: ExampleCreateRequest, example_service: ExampleServiceDependency) -> ExampleResponse:
+    """
+    Create a new example.
+    """
+    example = await example_service.create_example(example_data=example_data)
+    return ExampleResponse.model_validate(example)
 ```
 
-5. **Register router:**
+8. **Register router**
 
 ```python
 # app/routers/routes.py
 from app.routers import example
-
-root_router.include_router(example.router)
+...
+api.router.include_router(example.router)
+...
 ```
 
 ### Database Migrations
@@ -223,8 +272,8 @@ Logs all HTTP requests and responses with structured logging:
 
 ### Rate Limiting
 Protects your API from abuse with configurable rate limits:
-```python
-# Default: 60 requests per minute per IP
+```bash
+# .env
 RATE_LIMIT="60/minute"
 ```
 
@@ -235,12 +284,12 @@ Automatically adds correlation IDs to all requests for distributed tracing.
 Protects API documentation in production with basic authentication:
 ```python
 DOCS_ADMIN_USERNAME="admin"
-DOCS_ADMIN_PASSWORD="secure-password"
+DOCS_ADMIN_PASSWORD="password"
 ```
 
 ### CORS
 Configurable CORS with environment-aware defaults:
-- Development: Allows all origins
+- Development/Testing: Allows all origins
 - Production: Restricted to specified origins
 
 {% if enable_docker %}
@@ -320,7 +369,7 @@ cd /var/www/{{ app_name }}
 git pull origin main
 
 # Install dependencies
-uv sync --no-dev
+uv sync --no-dev --frozen
 
 # Run migrations
 bash scripts/migrate_db.sh
@@ -347,59 +396,7 @@ pm2 stop {{ app_name }}
 {% endif %}
 
 ## Environment Variables
-
-### Core Settings
-
-```bash
-# Application
-APP_NAME="{{ app_name }}"
-APP_DESCRIPTION="{{ app_description }}"
-DEPLOYMENT_ENVIRONMENT="development"  # development, production, testing
-
-# FastAPI
-FASTAPI_HOST="0.0.0.0"
-FASTAPI_PORT=8000
-FASTAPI_DEBUG=false
-FASTAPI_RELOAD=true
-
-# Database
-POSTGRES_USER="postgres"
-POSTGRES_PASSWORD="postgres"
-POSTGRES_DB="{{ app_name }}"
-POSTGRES_HOST="localhost"
-POSTGRES_PORT=5432
-
-# Security
-DOCS_ADMIN_USERNAME="admin"
-DOCS_ADMIN_PASSWORD="password"
-RATE_LIMIT="60/minute"
-
-# CORS
-CORS_ORIGINS=["http://localhost:3000"]
-```
-{% if enable_auth %}
-
-### Authentication Settings
-
-```bash
-# Email Configuration
-SMTP_HOST="smtp.example.com"
-SMTP_PORT=465
-SMTP_USE_SSL=true
-SMTP_HOST_USER="user@example.com"
-SMTP_HOST_PASSWORD="password"
-SMTP_FROM_EMAIL="noreply@example.com"
-SMTP_FROM_NAME="{{ app_name }}"
-
-# Session & Verification
-SESSION_LIFETIME_HOURS=24
-VERIFICATION_CODE_LIFETIME_HOURS=24
-
-# Testing
-TEST_SEND_EMAIL=false
-TEST_VERIFY_CODE=false
-```
-{% endif %}
+Check out the [.env.example](./.env.example) file for a list of all available environment variables.
 
 ## Testing
 
@@ -408,7 +405,6 @@ The project uses pytest with the following features:
 - **Parallel execution** - Tests run in parallel using pytest-xdist
 - **ASGI test client** - Direct testing without running a server
 - **Automatic retry** - Flaky tests are retried once
-- **Database isolation** - Each test uses a fresh test database
 
 ### Test Structure
 
@@ -416,20 +412,11 @@ The project uses pytest with the following features:
 # test/test_example.py
 import pytest
 from httpx import AsyncClient
+from test.utils.utils import assert_status_code
 
 async def test_example_endpoint(client: AsyncClient, base_url: str):
     response = await client.get(f"{base_url}example/")
-    assert response.status_code == 200
-```
-
-### Coverage
-
-```bash
-# Generate coverage report
-bash scripts/test.sh --cov=app --cov-report=html
-
-# View report
-open htmlcov/index.html
+    assert_status_code(response, 200)
 ```
 
 ## Scripts
@@ -438,22 +425,10 @@ Utility scripts in the `scripts/` directory:
 
 - `start_server.sh` - Start the development server
 - `test.sh` - Run tests with proper environment
-- `setup_db.sh` - Initialize the database
+- `create_db.sh` - Create the database
 - `migrate_db.sh` - Run pending migrations
 - `reset_db.sh` - Reset database (⚠️ destructive)
 - `context.sh` - Generate LLM context from code files
 
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Run tests and quality checks
-4. Submit a pull request
-
-## License
-
-This project is created with create-fastapi-app.
-
----
 
 **Generated with** [create-fastapi-app](https://github.com/SenZmaKi/create-fastapi-app)

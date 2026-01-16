@@ -1,6 +1,4 @@
 import os
-import socket
-from contextlib import closing
 from collections.abc import AsyncGenerator
 import pytest
 import pytest_asyncio
@@ -18,18 +16,6 @@ BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}/api/"
 @pytest.fixture(scope="session")
 def base_url() -> str:
     return BASE_URL
-
-
-def is_port_in_use(port: int, host: str) -> bool:
-    """Check if a port is in use."""
-
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-        try:
-            sock.settimeout(1)
-            sock.connect((host, port))
-            return True
-        except (TimeoutError, OSError):
-            return False
 
 
 @pytest.fixture(scope="session")

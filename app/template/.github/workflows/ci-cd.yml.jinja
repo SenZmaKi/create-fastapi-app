@@ -71,7 +71,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment:
       name: production
-      url: https://{{ app_name }}.example.com
+      url: https://{{ app_name }}.example.com # Change this to your domain
 
     steps:
       - uses: actions/checkout@v4

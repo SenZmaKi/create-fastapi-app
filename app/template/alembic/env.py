@@ -4,11 +4,10 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
-from app.models.base import Base
-
+from app.utils.settings import settings
+from app.models.utils.utils import Base
 # Import your models here so Alembic can detect them
 
-from app.utils.settings import settings
 
 # this is the Alembic Config object
 config = context.config

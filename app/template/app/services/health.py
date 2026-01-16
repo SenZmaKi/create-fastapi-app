@@ -1,7 +1,7 @@
 from sqlalchemy import select
-from app.database.session import AsyncSession
 from app.services.utils.error import ServiceError
 from app.services.utils.utils import BaseService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UnhealthyDbError(ServiceError):

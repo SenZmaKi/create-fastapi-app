@@ -8,24 +8,26 @@ from app.middlewares.cors import add_cors_middleware
 from app.middlewares.logging import add_logging_middleware
 from app.middlewares.rate_limiter import add_rate_limiter_middleware
 from app.middlewares.docshield import add_docshield_middleware
-from app.middlewares.request_id import add_request_id_middleware
 from app.utils.settings import settings
 from app.utils.logger import logger
+from app.middlewares.request_id import add_request_id_middleware
 from app.routers.routes import root_router
-from app.database.session import close_db, init_db
-{% if enable_auth %}
-from app.services.scheduler import start_scheduler, shutdown_scheduler
-{% endif %}
+from app.database import close_db, init_db
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
+{% if enable_auth %}
+from app.services.scheduler import get_scheduler_service
+{% endif %}
 
 
 def add_middlewares(app: FastAPI) -> None:
+    logger.info("Adding middlewares")
     add_logging_middleware(app)
     add_request_id_middleware(app)
     add_cors_middleware(app)
     add_rate_limiter_middleware(app)
     add_docshield_middleware(app)
+    logger.info("Middlewares added")
 
 
 @asynccontextmanager
@@ -34,29 +36,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(
         "Starting server", extra={"environment": settings.deployment_environment}
     )
-    logger.info(
-        "Initializing database",
-        extra={"database": settings.get_database_info_safe()},
-    )
     await init_db()
-    logger.info("Database initialized")
-{% if enable_auth %}
-    logger.info("Starting scheduler")
-    start_scheduler()
-    logger.info("Scheduler started!")
-{% endif %}
+    {% if enable_auth %}
+    scheduler_service = get_scheduler_service()
+    scheduler_service.start_scheduler()
+    {% endif %}
 
     yield
 
     # Shutdown
-    logger.info("Shutting down")
-{% if enable_auth %}
-    logger.info("Stopping scheduler")
-    shutdown_scheduler()
-    logger.info("Scheduler stopped")
-{% endif %}
+    logger.info("Shutting down server")
+    {% if enable_auth %}
+    scheduler_service.shutdown_scheduler()
+    {% endif %}
     await close_db()
-    logger.info("Database connections closed")
 
 
 def build_fastapi_app() -> FastAPI:
@@ -79,16 +72,19 @@ async def generic_exception_handler(_: Request, exception: Exception) -> JSONRes
 
 
 def add_exception_handlers(app: FastAPI) -> None:
+    logger.info("Adding exception handlers")
     app.add_exception_handler(Exception, generic_exception_handler)
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
+    logger.info("Exception handlers added")
 
 
 def create_app() -> FastAPI:
+    logger.info("Creating app")
     app = build_fastapi_app()
     app.include_router(root_router)
     add_middlewares(app)
     add_exception_handlers(app)
-
+    logger.info("App created")
     return app
 
 
