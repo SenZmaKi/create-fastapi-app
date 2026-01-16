@@ -1,4 +1,4 @@
-# {{ app_name }}
+# {{ app_name_ui }}
 
 {{ app_description }}
 
@@ -26,7 +26,7 @@
   - Request ID tracking
   - DocShield (API docs protection in production)
   - CORS configuration
-- 🧪 **Testing** - Pytest with parallel execution and ASGI test client
+- **Testing** - Pytest with parallel execution and ASGI test client
 {%- if enable_docker %}
 - **Docker** - Multi-stage build with uv for optimal image size
 {%- endif %}
@@ -54,7 +54,7 @@
 1. **Install dependencies**
 
 ```bash
-uv sync
+uv sync --frozen
 ```
 
 2. **Set up environment variables**
@@ -67,13 +67,13 @@ cp .env.example .env
 3. **Set up the database**
 
 ```bash
-bash scripts/setup_db.sh
+scripts/setup_db.sh
 ```
 
 4. **Run the application**
 
 ```bash
-bash scripts/start_server.sh
+scripts/start_server.sh
 ```
 
 The API will be available at `http://localhost:8000/` with interactive documentation at `http://localhost:8000/docs`.
@@ -228,20 +228,17 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 
 # Reset database
-bash scripts/reset_db.sh
+scripts/reset_db.sh
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-bash scripts/test.sh
+scripts/test.sh
 
 # Run specific test file
-bash scripts/test.sh test/test_health.py
-
-# Run with coverage
-bash scripts/test.sh --cov=app
+scripts/test.sh test/test_health.py
 ```
 
 ### Code Quality
@@ -372,7 +369,7 @@ git pull origin main
 uv sync --no-dev --frozen
 
 # Run migrations
-bash scripts/migrate_db.sh
+scripts/migrate_db.sh
 
 # Restart with PM2
 pm2 restart {{ app_name }}

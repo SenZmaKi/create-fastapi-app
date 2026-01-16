@@ -74,14 +74,13 @@ def validate_app_name(name: str) -> bool | str:
     if keyword.iskeyword(name):
         return f"'{name}' is a Python keyword and cannot be used as app name"
     if not re.match(r"^[a-z][a-z0-9-]*$", name):
-        return "App name must contain only lowercase letters, numbers, and hyphens"
+        return "App name must only contain lowercase letters, numbers, and hyphens"
     return True
 
 
 def ask(asker: Callable[[], Any]) -> Any:
     answer = asker()
     if not answer:
-        console.print("[red]✗[/red] Operation cancelled.")
         sys.exit(0)
     return answer
 
