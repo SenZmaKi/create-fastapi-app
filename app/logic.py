@@ -3,8 +3,10 @@ import subprocess
 import shutil
 from typing import NamedTuple
 from copier import run_copy
+from rich.console import Console
 
 TEMPLATE_DIR = Path(__file__).parent / "template"
+console = Console()
 
 
 class AppConfig(NamedTuple):
@@ -45,27 +47,52 @@ class InitGitRepoError(CommandError):
 class PrerequisiteError(Exception):
     """Raised when required tools are not installed"""
 
+    def __init__(self, tool_name: str, installation_url: str) -> None:
+        self.tool_name = tool_name
+        self.installation_url = installation_url
+        super().__init__(f"{tool_name} is not installed.")
+
+
+class PostgreSQLNotRunningError(Exception):
     pass
 
 
-def check_prerequisites(config: AppConfig) -> None:
-    """Check if required tools are installed before starting setup."""
-    missing_tools = []
+def is_postgresql_running(host: str = "localhost", port: int = 5432) -> bool:
+    try:
+        subprocess.run(
+            ["pg_isready", "-h", host, "-p", str(port)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def assert_has_prerequisites(config: AppConfig) -> None:
+    """Assert required tools are installed before starting setup."""
 
     # uv is always required for dependency installation
     if not shutil.which("uv"):
-        missing_tools.append("uv (install from https://docs.astral.sh/uv/)")
-
-    # git is required if user wants to initialize git repo
-    if config.initialize_git and not shutil.which("git"):
-        missing_tools.append("git")
-
-    if missing_tools:
-        tools_list = "\n  - ".join(missing_tools)
         raise PrerequisiteError(
-            f"The following required tools are not installed:\n  - {tools_list}\n"
-            "Please install them and try again."
+            tool_name="uv", installation_url="https://docs.astral.sh/uv/"
         )
+    if not shutil.which("git"):
+        raise PrerequisiteError(
+            tool_name="Git", installation_url="https://git-scm.com/downloads"
+        )
+
+    # Check PostgreSQL if database setup is requested
+    if config.setup_database:
+        if not shutil.which("pg_isready"):
+            raise PrerequisiteError(
+                tool_name="PostgreSQL",
+                installation_url="https://www.postgresql.org/download/",
+            )
+
+        if not is_postgresql_running():
+            raise PostgreSQLNotRunningError()
 
 
 def run_process(

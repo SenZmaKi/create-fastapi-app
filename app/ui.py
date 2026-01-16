@@ -16,8 +16,9 @@ from app.logic import (
     init_git_repo,
     install_dependencies,
     setup_database,
-    check_prerequisites,
+    assert_has_prerequisites,
     PrerequisiteError,
+    PostgreSQLNotRunningError,
 )
 
 VERSION = "v0.2.0"
@@ -60,7 +61,7 @@ def print_footer() -> None:
         Text("Made with ", style="dim")
         + Text("❤️ ", style="red")
         + Text(" by ", style="dim")
-        + Text("SenZmaKi", style="dim link https://github.com/SenZmaKi/")
+        + Text("SenZmaKi", style="link https://github.com/SenZmaKi/")
     )
     console.print(footer, justify="center")
     console.print()
@@ -175,9 +176,18 @@ def setup_app(config: AppConfig) -> Path:
 
     # Check prerequisites before starting
     try:
-        check_prerequisites(config)
+        assert_has_prerequisites(config)
     except PrerequisiteError as e:
-        console.print(f"[red]✗[/red] {e}")
+        console.print(f"[red]✗[/red] {e.tool_name} is not installed.")
+        console.print(
+            f"Please install it from [link={e.installation_url}]{e.installation_url}[/link] and try again."
+        )
+        sys.exit(1)
+    except PostgreSQLNotRunningError:
+        console.print("[red]✗[/red] PostgreSQL is not running.")
+        console.print(
+            "Please start PostgreSQL and try again. You can find instructions at [link=https://www.postgresql.org/docs/current/server-start.html]https://www.postgresql.org/docs/current/server-start.html[/link]"
+        )
         sys.exit(1)
 
     app_dir: Path | None = None
