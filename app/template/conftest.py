@@ -8,8 +8,6 @@ from httpx import ASGITransport, AsyncClient
 
 
 os.environ["DEPLOYMENT_ENVIRONMENT"] = "testing"
-# Configure pytest-asyncio to use function-scoped event loops
-pytest_asyncio.fixture(scope="function", loop_scope="session")
 SERVER_HOST = settings.fastapi_host
 SERVER_PORT = settings.fastapi_port
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}/api/"

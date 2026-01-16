@@ -2,8 +2,10 @@ from httpx import AsyncClient
 from app.dtos.auth import UserResponse
 from app.dtos.utils.utils import MessageResponse
 from test.utils.utils import build_user_data, register_user, assert_status_code
+import pytest
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_registration(client: AsyncClient):
     user_data = build_user_data()
 
@@ -19,6 +21,7 @@ async def test_registration(client: AsyncClient):
     assert "authorization" in response.headers
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_register_duplicate_email(client: AsyncClient):
     result = await register_user(client)
     duplicate_response = await client.post(
@@ -29,12 +32,14 @@ async def test_register_duplicate_email(client: AsyncClient):
     await assert_status_code(duplicate_response, 409)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_register_invalid_email(client: AsyncClient):
     user_data = build_user_data(email="invalid-email")
     response = await client.post("auth/register", json=user_data)
     await assert_status_code(response, 422)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_register_short_password(client: AsyncClient):
     user_data = build_user_data(password="short")
 
@@ -42,6 +47,7 @@ async def test_register_short_password(client: AsyncClient):
     await assert_status_code(response, 422)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_success(client: AsyncClient):
     result = await register_user(client, verify=False)
     login_data = {
@@ -61,6 +67,7 @@ async def test_login_success(client: AsyncClient):
     assert "authorization" in response.headers
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_invalid_credentials(client: AsyncClient):
     login_data = build_user_data()
 
@@ -71,6 +78,7 @@ async def test_login_invalid_credentials(client: AsyncClient):
     assert "detail" in data
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_wrong_password(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -80,6 +88,7 @@ async def test_login_wrong_password(client: AsyncClient):
     await assert_status_code(response, 401)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_current_user(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -92,11 +101,13 @@ async def test_get_current_user(client: AsyncClient):
     assert user.name == result.user_data["name"]
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_current_user_unauthorized(client: AsyncClient):
     response = await client.get("auth/me")
     await assert_status_code(response, 401)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_current_user_invalid_token(client: AsyncClient):
     response = await client.get(
         "auth/me", headers={"authorization": "Bearer invalid_token"}
@@ -104,6 +115,7 @@ async def test_get_current_user_invalid_token(client: AsyncClient):
     await assert_status_code(response, 401)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_logout_success(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -118,6 +130,7 @@ async def test_logout_success(client: AsyncClient):
     await assert_status_code(me_response, 401)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_logout_without_token(client: AsyncClient):
     response = await client.post("auth/logout")
     await assert_status_code(response, 200)
@@ -127,6 +140,7 @@ async def test_logout_without_token(client: AsyncClient):
     assert message.message == "Already logged out"
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_logout_invalid_token(client: AsyncClient):
     response = await client.post(
         "auth/logout", headers={"authorization": "Bearer invalid_token"}
@@ -138,6 +152,7 @@ async def test_logout_invalid_token(client: AsyncClient):
     assert message.message
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_forgot_password_success(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -147,6 +162,7 @@ async def test_forgot_password_success(client: AsyncClient):
     await assert_status_code(response, 200)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_forgot_password_nonexistent_email(client: AsyncClient):
     forgot_password_data = {"email": "nonexistent@example.com"}
 
@@ -154,6 +170,7 @@ async def test_forgot_password_nonexistent_email(client: AsyncClient):
     await assert_status_code(response, 404)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_forgot_password_invalid_email(client: AsyncClient):
     forgot_password_data = {"email": "invalid-email"}
 
@@ -161,6 +178,7 @@ async def test_forgot_password_invalid_email(client: AsyncClient):
     await assert_status_code(response, 422)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reset_password_success(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -185,6 +203,7 @@ async def test_reset_password_success(client: AsyncClient):
     await assert_status_code(login_response, 200)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reset_password_nonexistent_email(client: AsyncClient):
     reset_data = {
         "email": "nonexistent@example.com",
@@ -196,6 +215,7 @@ async def test_reset_password_nonexistent_email(client: AsyncClient):
     await assert_status_code(reset_response, 404)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reset_password_short_password(client: AsyncClient):
     result = await register_user(client, verify=False)
 
@@ -212,6 +232,7 @@ async def test_reset_password_short_password(client: AsyncClient):
     await assert_status_code(reset_response, 422)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reset_password_old_password_fails(client: AsyncClient):
     result = await register_user(client, verify=False)
     old_password = result.user_data["password"]
