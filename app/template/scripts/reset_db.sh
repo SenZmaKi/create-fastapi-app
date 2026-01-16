@@ -21,7 +21,7 @@ parse_args "$@"
 run_with_env uv run python -m scripts.db.drop "${ARGS[@]}"
 
 # Create the database
-run_with_env uv run python -m scripts.db.setup "${ARGS[@]}"
+run_with_env uv run python -m scripts.db.create "${ARGS[@]}"
 
 # Run migrations or initialize migrations
 if [ "$INIT_MIGRATIONS" = true ]; then
@@ -33,8 +33,8 @@ if [ "$INIT_MIGRATIONS" = true ]; then
   run_with_env uv run alembic revision --autogenerate -m "Initial migration"
 else
   if [ "$TEST" = true ]; then
-    bash "$SCRIPT_DIR/migrate.sh" --testing "${ARGS[@]}"
+    bash "$SCRIPT_DIR/migrate_db.sh" --testing "${ARGS[@]}"
   else
-    bash "$SCRIPT_DIR/migrate.sh" "${ARGS[@]}"
+    bash "$SCRIPT_DIR/migrate_db.sh" "${ARGS[@]}"
   fi
 fi

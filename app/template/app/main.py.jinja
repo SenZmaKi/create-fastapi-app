@@ -11,7 +11,7 @@ from app.middlewares.docshield import add_docshield_middleware
 from app.utils.settings import settings
 from app.utils.logger import logger
 from app.middlewares.request_id import add_request_id_middleware
-from app.routers.routes import root_router
+from app.routers.root import router as root_router
 from app.database import close_db, init_db
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler

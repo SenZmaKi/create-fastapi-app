@@ -64,9 +64,10 @@ async def register_user(
     user_id = response_json["id"]
 
     is_verified = False
+    verification_response: Response | None = None
     if verify:
-        verification_responsea = await client.post("auth/verify-email", json={"code": "Jr51Op"})
-        await assert_status_code(verification_responsea, 200)
+        verification_response = await client.post("auth/verify-email", json={"code": "Jr51Op"})
+        await assert_status_code(verification_response, 200)
         is_verified = True
 
     return UserRegistrationResult(

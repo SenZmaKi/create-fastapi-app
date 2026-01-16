@@ -1,5 +1,7 @@
 import shutil
 import sys
+import re
+import keyword
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
@@ -13,6 +15,8 @@ from app.logic import (
     init_git_repo,
     install_dependencies,
     setup_database,
+    check_prerequisites,
+    PrerequisiteError,
 )
 
 VERSION = "v0.2.0"
@@ -61,16 +65,34 @@ def print_footer() -> None:
     console.print()
 
 
+def validate_app_name(name: str) -> bool | str:
+    """Validate app name for Python package naming conventions."""
+    name = name.strip()
+    if not name:
+        return "App name cannot be empty"
+    if keyword.iskeyword(name):
+        return f"'{name}' is a Python keyword and cannot be used as app name"
+    if not re.match(r"^[a-z][a-z0-9-]*$", name):
+        return "App name must contain only lowercase letters, numbers, and hyphens"
+    return True
+
+
 def get_user_input() -> AppConfig:
     app_name = questionary.text(
         "What is your app's name?",
         style=custom_style,
-        validate=lambda text: True if text.strip() else "App name cannot be empty",
+        validate=validate_app_name,
     ).ask()
 
     if not app_name:
         console.print("[red]✗[/red] Operation cancelled.")
         sys.exit(0)
+
+    app_name_ui = questionary.text(
+        "What is your app's name as it appears in the UI?",
+        style=custom_style,
+        validate=lambda text: True if text.strip() else "App name ui cannot be empty",
+    ).ask()
 
     app_description = questionary.text("App description:", style=custom_style).ask()
 
@@ -131,6 +153,7 @@ def get_user_input() -> AppConfig:
 
     return AppConfig(
         name=app_name.strip(),
+        name_ui=app_name_ui.strip(),
         description=app_description.strip(),
         setup_database=setup_database,
         initialize_git=initialize_git,
@@ -154,6 +177,14 @@ def setup_app(config: AppConfig) -> Path:
     console.print()
     console.print(f"[cyan]Creating {config.name}...[/cyan]")
     console.print()
+
+    # Check prerequisites before starting
+    try:
+        check_prerequisites(config)
+    except PrerequisiteError as e:
+        console.print(f"[red]✗[/red] {e}")
+        sys.exit(1)
+
     app_dir: Path | None = None
 
     try:

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class RootResponse(BaseModel):
-    name: str = settings.app_name
+    name: str = settings.app_name_ui
     description: str = settings.app_description
     version: str = settings.app_version
     docs: str

@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import shutil
 from typing import NamedTuple
 from copier import run_copy
 
@@ -8,6 +9,7 @@ TEMPLATE_DIR = Path(__file__).parent / "template"
 
 class AppConfig(NamedTuple):
     name: str
+    name_ui: str
     description: str
     setup_database: bool
     initialize_git: bool
@@ -40,6 +42,32 @@ class InitGitRepoError(CommandError):
     message = "Failed to initialize git repository"
 
 
+class PrerequisiteError(Exception):
+    """Raised when required tools are not installed"""
+
+    pass
+
+
+def check_prerequisites(config: AppConfig) -> None:
+    """Check if required tools are installed before starting setup."""
+    missing_tools = []
+
+    # uv is always required for dependency installation
+    if not shutil.which("uv"):
+        missing_tools.append("uv (install from https://docs.astral.sh/uv/)")
+
+    # git is required if user wants to initialize git repo
+    if config.initialize_git and not shutil.which("git"):
+        missing_tools.append("git")
+
+    if missing_tools:
+        tools_list = "\n  - ".join(missing_tools)
+        raise PrerequisiteError(
+            f"The following required tools are not installed:\n  - {tools_list}\n"
+            "Please install them and try again."
+        )
+
+
 def run_process(
     command: list[str],
     command_exception: type[CommandError],
@@ -63,6 +91,7 @@ def copy_template(config: AppConfig) -> Path:
         # Prepare Copier data
         data = {
             "app_name": config.name,
+            "app_name_ui": config.name_ui,
             "app_description": config.description,
             "enable_docker": config.enable_docker,
             "enable_auth": config.enable_auth,

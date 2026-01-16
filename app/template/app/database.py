@@ -1,8 +1,6 @@
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from app.models.base import (
-    Base,
-)
+from app.models.utils.utils import Base
 from app.utils.settings import settings
 from app.utils.logger import logger
 
