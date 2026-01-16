@@ -1,19 +1,18 @@
+{%- if enable_auth %}
 import random
 import secrets
 import string
 import uuid
 from typing import NamedTuple
-{%- if enable_auth %}
 from httpx import AsyncClient, Response
+from datetime import datetime
 {%- else %}
 from httpx import Response
 {%- endif %}
 from pytest import fail
-from app.dtos.tools.utils.utils import TimeFrequencies
 {%- if enable_auth %}
 from app.utils.utils import utc_now
 {%- endif %}
-from datetime import datetime
 
 
 async def assert_status_code(response: Response, status_code: int) -> None:

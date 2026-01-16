@@ -8,5 +8,5 @@ from app.routers import auth
 api.router.include_router(auth.router)
 {%- endif %}
 
-root_router.include_router(health.router)
+api_router.include_router(health.router)
 root_router.include_router(api.router)
