@@ -1,228 +1,103 @@
-<!-- TOC --><a name="create-fastapi-app"></a>
+# Create FastAPI App
 
-# Create-FastAPI-App
-
-A CLI tool to quickly scaffold production-ready FastAPI applications with a well-structured project template.
-
-<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
+A CLI tool for scaffolding production-ready FastAPI applications with best practices and common features pre-configured.
 
 ## Table of Contents
 
-- [Create-FastAPI-App](#create-fastapi-app)
+- [Create FastAPI App](#create-fastapi-app)
   - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Requirements](#requirements)
   - [Installation](#installation)
+  - [Prerequisites](#prerequisites)
   - [Usage](#usage)
-  - [What's Included](#whats-included)
-  - [Generated Project Structure](#generated-project-structure)
-  - [CLI Options](#cli-options)
-  - [Development](#development)
-  - [TODO](#todo)
-  - [License](#license)
-  - [Contributing](#contributing)
-
-<!-- TOC end -->
-
-<!-- TOC --><a name="features"></a>
-
-## Features
-
-- 🚀 **Interactive CLI** - User-friendly prompts for project configuration
-- 📦 **Pre-configured Template** - Production-ready FastAPI application with best practices
-- 🗄️ **Database Ready** - PostgreSQL integration with SQLAlchemy and Alembic migrations
-- 🔒 **Type-Safe** - Full type checking with Pyright and Pydantic settings
-- 🐳 **Docker Support** - Containerization ready with Dockerfile and docker-compose
-- ✅ **Testing Setup** - Configured pytest with coverage support
-- 🎨 **Code Quality** - Pre-commit hooks with Ruff for linting and formatting
-- 🔧 **Developer Tools** - Helper scripts for database setup and migrations
-
-<!-- TOC --><a name="requirements"></a>
-
-## Requirements
-
-- **uv** - Python package manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
-- **Git** - Version control
-- **PostgreSQL** - For database integration (optional, can be configured later)
-
-<!-- TOC --><a name="installation"></a>
+    - [Configuration Options](#configuration-options)
+  - [What Gets Generated](#what-gets-generated)
 
 ## Installation
 
-### Using uvx (Recommended)
-
-Run directly without installation:
+Run directly without installation using uvx:
 
 ```bash
-uvx git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+uvx git+https://github.com/senzmaki/create-fastapi-app.git
 ```
 
-### Using uv
-
-Install globally:
+Or install globally:
 
 ```bash
-uv tool install git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+uv tool install git+https://github.com/senzmaki/create-fastapi-app.git
 ```
 
-### Using pip
+Then run:
 
 ```bash
-pip install git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
+create-fastapi-app
 ```
 
-<!-- TOC --><a name="usage"></a>
+## Prerequisites
+
+The following tools must be installed before using create-fastapi-app:
+
+- [Git](https://git-scm.com/downloads) - Version control system
+- [uv](https://docs.astral.sh/uv/) - Python package manager
+- [PostgreSQL](https://www.postgresql.org/download/) - Database (required if database setup is enabled)
+
+PostgreSQL must be running if you choose to set up the database during project creation.
 
 ## Usage
 
-The CLI can be run directly without installation using `uvx`:
+The CLI will guide you through an interactive setup process. You will be prompted to configure the following options:
 
-```bash
-uvx git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
-```
+### Configuration Options
 
-Or install it globally:
+**App name**  
+The technical name for your application. Used as the project directory name and Python package name. Must contain only lowercase letters, numbers, and hyphens, and cannot be a Python keyword.
 
-```bash
-uv tool install git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
-```
+**App name UI**  
+The display name for your application. This appears in the generated documentation, API responses, and other user-facing locations.
 
-<!-- TOC --><a name="usage"></a>
+**App description**  
+A brief description of your application. Defaults to "A FastAPI application" if left empty.
 
-## Usage
+**Setup database**  
+Default: Yes  
+Creates the PostgreSQL database and runs initial migrations. Requires PostgreSQL to be installed and running.
 
-Run the CLI to create a new FastAPI project:
+**Initialize git repository**  
+Default: Yes  
+Initializes a git repository, installs pre-commit hooks, formats the code, and creates an initial commit.
 
-```bash
-uvx git+https://github.com/senzmaki/create-fastapi-app.git#subdirectory=cli
-```
+**Enable Docker integration**  
+Default: Yes  
+Includes Docker configuration files and Docker Compose setup.
 
-The interactive CLI will guide you through the setup process:
+**Enable authentication system**  
+Default: Yes  
+Adds a complete user authentication system with email verification, password reset, and session management.
 
-1. **Project Name** - Enter your application name (e.g., `my-awesome-api`)
-2. **Project Description** - Provide a brief description
-3. **Git Repository** - Choose whether to initialize a git repository with an initial commit
-4. **Database Setup** - Optionally set up the PostgreSQL database and run initial migrations
+**Enable soft delete for models**  
+Default: Yes  
+Implements soft delete functionality, allowing records to be marked as deleted without permanent removal from the database.
 
-After completion, your project will be ready with:
+**Enable VPS deployment configuration**  
+Default: Yes  
+Includes PM2 configuration for process management and GitHub Actions workflows for automated deployment to Virtual Private Servers.
 
-- All dependencies installed
-- Database configured (if selected)
-- Git repository initialized (if selected)
-- Ready to run with `uv run python -m app`
+## What Gets Generated
 
-<!-- TOC --><a name="whats-included"></a>
+The tool creates a fully configured FastAPI project with:
 
-## What's Included
+- FastAPI application with automatic API documentation
+- PostgreSQL database with SQLAlchemy ORM and Alembic migrations
+- Type safety with Pyright and Pydantic
+- Structured logging with request correlation IDs
+- Security middlewares (rate limiting, CORS, DocShield)
+- Pytest testing setup with parallel execution
+- Pre-commit hooks with Ruff formatter and linter
+- Environment configuration with .env support
+- Development and production scripts
 
-The generated project comes with:
+Optional features based on your selections:
 
-- ⚡ **FastAPI Application** - Modern async web framework with automatic API documentation
-- 🗄️ **SQLAlchemy + Alembic** - Async ORM and database migration management
-- 🔧 **Helper Scripts** - Database setup, migration, and development server utilities
-- 🧪 **Testing Framework** - Pytest with async support and example tests
-- 📝 **Type Checking** - Pyright configuration for full type safety
-- 🎨 **Code Formatting** - Ruff for fast linting and formatting
-- 🔗 **Pre-commit Hooks** - Automated code quality checks
-- 🐳 **Docker Ready** - Dockerfile and docker-compose configuration
-- 📚 **Comprehensive Documentation** - Detailed README with project structure and workflows
-- ⚙️ **Environment Management** - Type-safe settings with Pydantic
-
-<!-- TOC --><a name="generated-project-structure"></a>
-
-## Generated Project Structure
-
-```
-your-project-name/
-├── alembic/                 # Database migrations
-│   ├── versions/            # Migration files
-│   └── env.py              # Alembic configuration
-├── app/                     # Main application code
-│   ├── database/            # Database session management
-│   ├── dtos/                # Pydantic schemas for request/response
-│   ├── models/              # SQLAlchemy models
-│   ├── routers/             # API endpoints
-│   ├── services/            # Business logic layer
-│   ├── utils/               # Utilities (settings, logging, errors)
-│   └── main.py              # FastAPI app factory
-├── scripts/                 # Development and database management scripts
-│   ├── start_server.sh      # Start server
-│   ├── setup_db.sh          # Database initialization
-│   ├── reset_db.sh          # Drop and recreate database
-│   ├── migrate.sh           # Run database migrations
-│   ├── test.sh              # Run test suite
-│   ├── utils.sh             # Shared script utilities
-│   ├── db/                  # Database Python modules
-│   │   ├── setup.py         # Database creation logic
-│   │   └── drop.py          # Database drop logic
-│   └── utils/               # Script utilities
-├── test/                    # Test suite
-│   └── test_health.py       # Example tests
-├── alembic.ini              # Alembic configuration
-├── conftest.py              # Pytest fixtures
-├── docker-compose.yml       # Docker Compose setup
-├── Dockerfile               # Container configuration
-├── pyproject.toml           # Project dependencies and metadata
-├── pyrightconfig.json       # Type checker settings
-├── pytest.ini               # Pytest configuration
-└── README.md                # Project documentation
-```
-
-For detailed information about each directory and file, see the generated project's [README.md](./template/README.md).
-
-<!-- TOC --><a name="cli-options"></a>
-
-## CLI Options
-
-The CLI currently runs in interactive mode and prompts for:
-
-| Prompt                  | Description                                                                             | Required          |
-| ----------------------- | --------------------------------------------------------------------------------------- | ----------------- |
-| **Project Name**        | The name of your FastAPI application (will be used for directory name and package name) | Yes               |
-| **Project Description** | A brief description of your application                                                 | Yes               |
-| **Initialize Git**      | Whether to initialize a git repository and create an initial commit                     | No (default: Yes) |
-| **Setup Database**      | Whether to create the PostgreSQL database and run initial migrations                    | No (default: Yes) |
-
-<!-- TOC --><a name="development"></a>
-
-## Development
-
-To contribute to the CLI tool itself:
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/senzmaki/create-fastapi-app.git
-cd create-fastapi-app
-```
-
-2. Install development dependencies:
-
-```bash
-cd cli
-uv sync
-```
-
-3. Make your changes and test locally:
-
-```bash
-uv run python -m app
-```
-
-<!-- TOC --><a name="todo"></a>
-
-## TODO
-
-- Fix reload includes and excludes not working.
-
-<!-- TOC --><a name="license"></a>
-
-## License
-
-MIT
-
-<!-- TOC --><a name="contributing"></a>
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Docker containerization with optimized images
+- User authentication with email verification
+- Soft delete capability for database models
+- VPS deployment with PM2 and CI/CD workflows

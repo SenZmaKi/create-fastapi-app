@@ -21,7 +21,7 @@ from app.logic import (
     PostgreSQLNotRunningError,
 )
 
-VERSION = "v0.2.0"
+VERSION = "0.1.0"
 console = Console()
 
 
@@ -51,7 +51,7 @@ custom_style = Style(
 
 def print_header() -> None:
     console.print()
-    header = Text(f"Create FastAPI App {VERSION}", style="bold cyan")
+    header = Text(f"Create FastAPI App v{VERSION}", style="bold cyan")
     console.print(Panel(header, border_style="cyan"))
     console.print()
 
