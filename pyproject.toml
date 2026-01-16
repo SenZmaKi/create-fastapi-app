@@ -12,6 +12,13 @@ create-fastapi-app = "app.main:main"
 [tool.uv]
 package = true
 
+[tool.ruff]
+exclude = [".venv/", "app/template/"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+exclude = [".venv/", "app/template/"]
+
 [tool.setuptools]
 include-package-data = true
 
