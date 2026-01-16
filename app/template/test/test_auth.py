@@ -1,4 +1,3 @@
-import pytest
 from httpx import AsyncClient
 from app.dtos.auth import UserResponse
 from app.dtos.utils.utils import MessageResponse

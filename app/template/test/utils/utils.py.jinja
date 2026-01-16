@@ -5,14 +5,10 @@ import string
 import uuid
 from typing import NamedTuple
 from httpx import AsyncClient, Response
-from datetime import datetime
 {%- else %}
 from httpx import Response
 {%- endif %}
 from pytest import fail
-{%- if enable_auth %}
-from app.utils.utils import utc_now
-{%- endif %}
 
 
 async def assert_status_code(response: Response, status_code: int) -> None:
