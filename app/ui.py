@@ -3,6 +3,7 @@ import sys
 import re
 import keyword
 from pathlib import Path
+from typing import Any, Callable
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -77,81 +78,74 @@ def validate_app_name(name: str) -> bool | str:
     return True
 
 
+def ask(asker: Callable[[], Any]) -> Any:
+    answer = asker()
+    if not answer:
+        console.print("[red]✗[/red] Operation cancelled.")
+        sys.exit(0)
+    return answer
+
+
 def get_user_input() -> AppConfig:
-    app_name = questionary.text(
-        "What is your app's name?",
-        style=custom_style,
-        validate=validate_app_name,
-    ).ask()
+    app_name = ask(
+        questionary.text(
+            "What is your app's name?",
+            style=custom_style,
+            validate=validate_app_name,
+        ).ask
+    )
 
-    if not app_name:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
+    app_name_ui = ask(
+        questionary.text(
+            "What name should appear for your app across the UI?",
+            style=custom_style,
+            validate=lambda text: True
+            if text.strip()
+            else "App name ui cannot be empty",
+        ).ask
+    )
 
-    app_name_ui = questionary.text(
-        "What is your app's name as it appears in the UI?",
-        style=custom_style,
-        validate=lambda text: True if text.strip() else "App name ui cannot be empty",
-    ).ask()
+    app_description = ask(
+        questionary.text(
+            "App description:",
+            style=custom_style,
+            default="A FastAPI application",
+        ).ask
+    )
 
-    app_description = questionary.text(
-        "App description:", style=custom_style, default="A FastAPI application"
-    ).ask()
+    setup_database = ask(
+        questionary.confirm("Setup database?", default=True, style=custom_style).ask
+    )
 
-    if app_description is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
+    initialize_git = ask(
+        questionary.confirm(
+            "Initialize a git repository?", default=True, style=custom_style
+        ).ask
+    )
 
-    if not app_description.strip():
-        app_description = "A FastAPI application"
+    enable_docker = ask(
+        questionary.confirm(
+            "Enable Docker integration?", default=True, style=custom_style
+        ).ask
+    )
 
-    setup_database = questionary.confirm(
-        "Setup database?", default=True, style=custom_style
-    ).ask()
+    enable_auth = ask(
+        questionary.confirm(
+            "Enable authentication system?", default=True, style=custom_style
+        ).ask
+    )
 
-    if setup_database is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
+    enable_soft_delete = ask(
+        questionary.confirm(
+            "Enable soft delete for models?", default=True, style=custom_style
+        ).ask
+    )
 
-    initialize_git = questionary.confirm(
-        "Initialize a git repository?", default=True, style=custom_style
-    ).ask()
-
-    if initialize_git is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
-
-    enable_docker = questionary.confirm(
-        "Enable Docker integration?", default=True, style=custom_style
-    ).ask()
-
-    if enable_docker is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
-
-    enable_auth = questionary.confirm(
-        "Enable authentication system?", default=True, style=custom_style
-    ).ask()
-
-    if enable_auth is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
-
-    enable_soft_delete = questionary.confirm(
-        "Enable soft delete for models?", default=True, style=custom_style
-    ).ask()
-
-    if enable_soft_delete is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
-
-    enable_vps_deployment = questionary.confirm(
-        "Enable VPS deployment configuration?", default=True, style=custom_style
-    ).ask()
-
-    if enable_vps_deployment is None:
-        console.print("[red]✗[/red] Operation cancelled.")
-        sys.exit(0)
+    enable_vps_deployment = ask(
+        questionary.confirm(
+            "Enable VPS deployment configuration?", default=True, style=custom_style
+        ).ask
+    )
 
     return AppConfig(
         name=app_name.strip(),
