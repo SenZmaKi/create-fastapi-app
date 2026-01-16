@@ -166,7 +166,6 @@ def setup_database(app_dir: Path) -> None:
 
 
 def init_git_repo(app_dir: Path) -> None:
-    return
     run_process(["git", "init"], InitGitRepoError, cwd=app_dir)
     run_process(["uv", "run", "pre-commit", "install"], InitGitRepoError, cwd=app_dir)
     run_process(["git", "add", "."], InitGitRepoError, cwd=app_dir)
