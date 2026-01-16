@@ -154,7 +154,15 @@ def setup_database(app_dir: Path) -> None:
         cwd=app_dir,
     )
     run_process(
-        ["uv", "run", "alembic", "revision", "-m", "Initial migration"],
+        [
+            "uv",
+            "run",
+            "alembic",
+            "revision",
+            "--autogenerate",
+            "-m",
+            "Initial migration",
+        ],
         SetupDatabaseError,
         cwd=app_dir,
     )
