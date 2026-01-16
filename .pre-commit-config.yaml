@@ -11,7 +11,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-        exclude: ^(app/template/|centonomy-backend/)
+        exclude: ^(app/template/)
 
   # Linting and formatting with ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -23,9 +23,9 @@ repos:
         name: ruff lint
         args: [--fix]
         types_or: [python, pyi]
-        exclude: ^(app/template/|centonomy-backend/)
+        exclude: ^(app/template/)
       # Run the formatter
       - id: ruff-format
         name: ruff format
         types_or: [python, pyi]
-        exclude: ^(app/template/|centonomy-backend/)
+        exclude: ^(app/template/)
