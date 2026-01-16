@@ -24,11 +24,11 @@ class AppConfig(NamedTuple):
 class CommandError(Exception):
     message = "Command failed"
 
-    def __init__(self, stderr: str) -> None:
-        super().__init__(f"{self.message}: {stderr}")
+    def __init__(self, stderr: str, command: str) -> None:
+        super().__init__(f"{self.message} ({command}): {stderr}")
 
 
-class CopyTemplateError(CommandError):
+class CopyTemplateError(Exception):
     message = "Failed to copy template"
 
 
@@ -102,7 +102,7 @@ def run_process(
 ) -> None:
     result = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise command_exception(result.stderr)
+        raise command_exception(stderr=result.stderr, command=" ".join(command))
 
 
 def copy_template(config: AppConfig) -> Path:
