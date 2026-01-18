@@ -257,13 +257,14 @@ def print_to_get_started_commands(repo_dir: Path, config: AppConfig) -> None:
     console.print(f"  [cyan]cd {config.name}[/cyan]")
     if not config.setup_database:
         console.print("  [cyan]scripts/create_db.sh[/cyan]")
-        console.print(
-            "  [cyan]uv run alembic revision --autogenerate -m 'Initial migration'[/cyan]"
-        )
-        console.print("  [cyan]scripts/migrate_db.sh[/cyan]")
-        if config.initialize_git:
-            console.print("  [cyan]git add .[/cyan]")
-            console.print("  [cyan]git commit -m 'Add initial migration'[/cyan]")
+        if config.enable_auth:
+            console.print(
+                "  [cyan]uv run alembic revision --autogenerate -m 'Initial migration'[/cyan]"
+            )
+            console.print("  [cyan]scripts/migrate_db.sh[/cyan]")
+            if config.initialize_git:
+                console.print("  [cyan]git add .[/cyan]")
+                console.print("  [cyan]git commit -m 'Add initial migration'[/cyan]")
     console.print("  [cyan]scripts/start_server.sh[/cyan]")
     console.print()
 
