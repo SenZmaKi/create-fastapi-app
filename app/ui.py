@@ -253,7 +253,11 @@ def setup_app(config: AppConfig) -> Path:
 def print_to_get_started_commands(repo_dir: Path, config: AppConfig) -> None:
     commands = f"[bold]To get started:[/bold]\n  [cyan]cd {config.name}[/cyan]\n"
     if not config.setup_database:
-        commands += "  [cyan]uv run python -m scripts.setup_db[/cyan]\n"
+        commands += "  [cyan]scripts/setup_db.sh[/cyan]\n"
+        commands += "  [cyan]uv run alembic revision --autogenerate -m 'Initial migration'[/cyan]\n"
+        commands += "  [cyan]scripts/migrate_db.sh[/cyan]\n"
+        commands += "  [cyan]git add .[/cyan]\n"
+        commands += "  [cyan]git commit -m 'Add initial migration'[/cyan]\n"
     commands += "  [cyan]scripts/start_server.sh[/cyan]"
 
     console.print(
