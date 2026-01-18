@@ -222,7 +222,7 @@ api.router.include_router(example.router)
 uv run alembic revision --autogenerate -m "description"
 
 # Apply migrations
-uv run alembic upgrade head
+scripts/migrate_db.sh
 
 # Rollback one migration
 uv run alembic downgrade -1
@@ -296,16 +296,16 @@ Configurable CORS with environment-aware defaults:
 
 ```bash
 # Start all services
-docker compose up -d
+docker-compose up -d
 
 # View logs
-docker compose logs -f api
+docker-compose logs -f api
 
 # Stop services
-docker compose down
+docker-compose down
 
 # Rebuild after code changes
-docker compose up -d --build
+docker-compose up -d --build
 ```
 
 ### Production Docker Build
@@ -323,6 +323,12 @@ The Docker setup includes:
 - PostgreSQL database with health checks
 - Automatic migrations on startup
 - Volume mounts for logs and data persistence
+
+### Docker Database
+The docker container can either use the docker database service (default) in the [docker-compose.yml](./docker-compose.yml) or the host machine database.
+
+- Docker database service: `POSTGRES_HOST=db`
+- Host machine database: `POSTGRES_HOST=host.docker.internal`
 {% endif %}
 
 {% if enable_vps_deployment %}
