@@ -7,9 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source utility functions
 source "$SCRIPT_DIR/utils.sh"
 
-# Parse arguments
-parse_args "$@"
+load_env
 
 # Run migrations
-run_with_env uv run alembic upgrade head
+uv run alembic upgrade head
 

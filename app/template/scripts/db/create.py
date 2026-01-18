@@ -73,7 +73,7 @@ def main() -> int:
     print_colored("\n================================", "green")
     print_colored("Database creation completed!", "green")
     print_colored("================================", "green")
-    print("\nDatabase connection string:")
+    print("\nDatabase url:")
     print_colored(db_info.url, "blue")
 
     return 0

@@ -1,4 +1,5 @@
 import os
+os.environ["DEPLOYMENT_ENVIRONMENT"] = "testing"
 from collections.abc import AsyncGenerator
 import pytest
 import pytest_asyncio
@@ -7,7 +8,6 @@ from app.main import app
 from httpx import ASGITransport, AsyncClient
 
 
-os.environ["DEPLOYMENT_ENVIRONMENT"] = "testing"
 SERVER_HOST = settings.fastapi_host
 SERVER_PORT = settings.fastapi_port
 BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}/api/"

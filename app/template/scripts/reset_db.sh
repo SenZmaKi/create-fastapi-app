@@ -4,9 +4,11 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
+load_env
+
 INIT_MIGRATIONS=false
 
-# Extend parse_args to detect --init_migrations
+# Detect --init_migrations flag
 for arg in "$@"; do
   case "$arg" in
     --init_migrations)
@@ -15,13 +17,11 @@ for arg in "$@"; do
   esac
 done
 
-parse_args "$@"
-
 # Drop the database
-run_with_env uv run python -m scripts.db.drop "${ARGS[@]}"
+uv run python -m scripts.db.drop "$@"
 
 # Create the database
-run_with_env uv run python -m scripts.db.create "${ARGS[@]}"
+uv run python -m scripts.db.create "$@"
 
 # Run migrations or initialize migrations
 if [ "$INIT_MIGRATIONS" = true ]; then
@@ -30,11 +30,7 @@ if [ "$INIT_MIGRATIONS" = true ]; then
 
   rm -rf "$VERSIONS_DIR"/*
 
-  run_with_env uv run alembic revision --autogenerate -m "Initial migration"
+  uv run alembic revision --autogenerate -m "Initial migration"
 else
-  if [ "$TEST" = true ]; then
-    bash "$SCRIPT_DIR/migrate_db.sh" --testing "${ARGS[@]}"
-  else
-    bash "$SCRIPT_DIR/migrate_db.sh" "${ARGS[@]}"
-  fi
+  bash "$SCRIPT_DIR/migrate_db.sh" "$@"
 fi

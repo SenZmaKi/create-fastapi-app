@@ -59,7 +59,7 @@ def print_header() -> None:
 def print_footer() -> None:
     footer = (
         Text("Made with ", style="dim")
-        + Text("❤️ ", style="red")
+        + Text("💀")
         + Text(" by ", style="dim")
         + Text("SenZmaKi", style="link https://github.com/SenZmaKi/")
     )

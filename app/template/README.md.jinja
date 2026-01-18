@@ -416,6 +416,21 @@ async def test_example_endpoint(client: AsyncClient, base_url: str):
     assert_status_code(response, 200)
 ```
 
+### Test Database
+
+The tests run on a completely separate database named `{{ app_name }}-test`. You have to manually create the database and run the migrations before running the tests for the first time.
+
+```bash
+# Create database
+DEPLOYMENT_ENVIRONMENT=testing scripts/create_db.sh
+
+# Run migrations
+DEPLOYMENT_ENVIRONMENT=testing scripts/migrate_db.sh
+
+# Run tests
+scripts/test.sh
+```
+
 ## Scripts
 
 Utility scripts in the `scripts/` directory:
@@ -423,8 +438,9 @@ Utility scripts in the `scripts/` directory:
 - `start_server.sh` - Start the development server
 - `test.sh` - Run tests with proper environment
 - `create_db.sh` - Create the database
+- `drop_db.sh` - Drop the database
 - `migrate_db.sh` - Run pending migrations
-- `reset_db.sh` - Reset database (⚠️ destructive)
+- `reset_db.sh` - Drop then create database
 - `context.sh` - Generate LLM context from code files
 
 
