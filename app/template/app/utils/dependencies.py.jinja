@@ -1,12 +1,12 @@
 from app.database import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.email import EmailService
 from app.services.health import HealthService
 from typing import Annotated
 {%- if enable_auth %}
 from fastapi import Depends, Header, HTTPException, status
 from app.models.auth import User
 from app.services.auth import AuthService
+from app.services.email import EmailService
 {%- else %}
 from fastapi import Depends
 {%- endif %}
