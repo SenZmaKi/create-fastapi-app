@@ -26,10 +26,6 @@ class User(BaseMixin):
         Boolean, default=False, nullable=False
     )
 
-    @property
-    def is_verified(self) -> bool:
-        """Alias for is_email_verified for consistency."""
-        return self.is_email_verified
 
     @property
     def first_name(self) -> str:

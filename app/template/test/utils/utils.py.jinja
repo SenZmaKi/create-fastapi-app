@@ -24,7 +24,7 @@ class UserRegistrationResult(NamedTuple):
     verification_response: Response | None
     user_data: dict
     user_id: str
-    is_verified: bool
+    is_email_verified: bool
 
 
 def build_user_data(
