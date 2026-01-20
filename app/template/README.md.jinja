@@ -334,6 +334,8 @@ The docker container can either use the docker database service (default) in the
 {% if enable_vps_deployment %}
 ## VPS Deployment
 
+- **Note:** Change the environment url to your domain
+
 ### Prerequisites
 
 1. **Server setup:**
@@ -345,8 +347,9 @@ The docker container can either use the docker database service (default) in the
 2. **GitHub Secrets (required):**
    - `SSH_PRIVATE_KEY` - Private SSH key for server access
    - `SSH_USER` - SSH username (e.g., `deploy`)
-   - `SERVER_HOST` - Server IP or domain
+   - `SSH_HOST` - Server IP or domain
    - `ENV_FILE` - Complete .env file contents for production
+
 
 ### Deployment Workflow
 
@@ -358,6 +361,7 @@ The CI/CD pipeline automatically deploys to production on pushes to `main`:
 4. Runs database migrations
 5. Restarts application with PM2
 6. Performs health check
+
 
 ### Manual Deployment
 
